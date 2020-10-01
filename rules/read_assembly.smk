@@ -18,7 +18,7 @@ rule define_primer:
     output:
         "primer_table.csv"
     params:
-       paired_end=config["merge"]["paired_End"],
+       paired_end=config["general"]["paired_End"],
        offset=config["qc"]["primer_offset"],
        bar_removed=config["qc"]["barcode_removed"],
        all_removed=config["qc"]["all_primer"]
@@ -54,7 +54,7 @@ rule cutadapt:
         "results/assembly/{{sample}}_{{unit}}/{{sample}}_{{unit}}_{read}_cut.fastq",
         read=reads)
     params:
-        paired_end=config["merge"]["paired_End"],
+        paired_end=config["general"]["paired_End"],
         bar_removed=config["qc"]["barcode_removed"],
         prim_rm=config["qc"]["all_primer"],
         minlen=config["qc"]["minlen"],
@@ -76,7 +76,7 @@ rule assembly:
         "results/assembly/{sample}_{unit}/{sample}_{unit}_assembled.fastq"
     threads: 20
     params:
-        paired_end=config["merge"]["paired_End"],
+        paired_end=config["general"]["paired_End"],
         threshold=config["qc"]["threshold"],
         minoverlap=config["qc"]["minoverlap"],
         minlen=config["qc"]["minlen"],

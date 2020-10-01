@@ -1,39 +1,5 @@
 ---
 $schema: "http://json-schema.org/draft-06/schema#"
-blast:
-  blast:
-    default: false
-    description: "Boolean to indicate the use of the BLAST clustering algorithm to assign taxonomic information to the OTUs."
-    type: boolean
-  database:
-    default: SILVA
-    description: "Database against which the BLAST should be carried out, at the moment \"NCBI\" and \"SILVA\" are supported."
-    oneOf: "SILVA, NCBI"
-    type: string
-  db_path:
-    default: database/silva/silva.db
-    description: "Path to the database file against which the BLAST should be carried out, at the moment only the SILVA and NCBI databases will be automatically downloaded, other databases have to be downloaded and configurated manually."
-    type: string
-  drop_tax_classes:
-    default: ""
-    description: "Comma-sparated list of taxations to dismiss. Either by name, id or regular expression"
-    type: string
-  evalue:
-    default: 1e-51
-    description: "Highest accepted evalue."
-    type: string
-  ident:
-    default: 90.0
-    description: "Minimal identity overlap between target and query sequence."
-    type: float
-  max_target_seqs:
-    default: 1
-    description: "Number of blast hits that are saved per sequence / OTU."
-    type: int
-  out6:
-    default: "\"6 qseqid qlen length pident mismatch qstart qend sstart send gaps evalue stitle\""
-    description: "Additional BLAST information to be saved."
-    type: string
 chim:
   abskew:
     default: 16
@@ -100,30 +66,6 @@ general:
     default: units.tsv
     description: "Path to the sequencing unit sheet."
     type: string
-  seq_rep:
-    default: OTU
-    description: "How the sequences should be represented, possible values are: 'ASV', amplicon sequence variants, created with DADA2 or 'OTU', operational taxonomic units, created with SWARM"
-    oneOf: "OTU, ASV"
-    type: string
-merge:
-  ampli_corr:
-    default: fdr
-    description: "Specifies the correction method for Fisher's exact test."
-    oneOf: "fdr, holm, hochberg, hommel, bonferroni, BH, BY, none"
-    type: string
-  ampliconduo:
-    default: false
-    description: "If AmpliconDuo should be used for statistical analysis of the data."
-    type: boolean
-  cutoff:
-    default: 3
-    description: "An additional abundance filter if the split sample approach was not used."
-    type: int
-  filter_method:
-    default: not_split
-    description: "If the split sample approach was used (split_sample) or not (not_split)."
-    oneOf: "not_split, split_sample"
-    type: string
   name_ext:
     default: R1
     description: "The identifier for the forward read (for the reverse read the 1 is switched with 2, if the data is in paired-end format), has to be included at the end of the file name, before the file format identifier (including for single end files)."
@@ -131,19 +73,6 @@ merge:
   paired_End:
     default: true
     description: "The format of the sequencing data, TRUE if the reads are in paired-end format."
-    type: boolean
-  plot_AmpDuo:
-    default: true
-    description: "If the frequency-frequency plot should be saved."
-    type: boolean
-  save_format:
-    default: png
-    description: "File format for the frequency-frequency plot."
-    oneOf: "png, eps, ps, tex, pdf, jpeg, tiff, bmp, svg, wmf"
-    type: string
-  swarm:
-    default: true
-    description: "Boolean to indicate the use of the SWARM clustering algorithm to create operational taxonomic units (OTUs) from the data."
     type: boolean
 qc:
   all_primer:
