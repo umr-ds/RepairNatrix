@@ -66,24 +66,6 @@ rule cutadapt:
     script:
         "../scripts/cutadapt.py"
 
-rule DADA2:
-    input:
-        forward = expand(
-            "results/assembly/{unit.sample}_{unit.unit}/{unit.sample}_{unit.unit}_1_cut.fastq", unit=units.reset_index().itertuples()),
-        reverse = expand(
-            "results/assembly/{unit.sample}_{unit.unit}/{unit.sample}_{unit.unit}_2_cut.fastq", unit=units.reset_index().itertuples()) if config["merge"]["paired_End"] == True else []
-    output:
-        expand("results/assembly/{unit.sample}_{unit.unit}/{unit.sample}_{unit.unit}_dada.fasta", unit=units.reset_index().itertuples())
-    params:
-        paired_end=config["merge"]["paired_End"]
-    conda:
-        "../envs/dada2.yaml"
-    log:
-        "results/logs/finalData/DADA2.log"
-    script:
-        "../scripts/dada2.R"
-
-
 rule assembly:
     input:
         expand(

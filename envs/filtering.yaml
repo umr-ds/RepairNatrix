@@ -1,9 +1,0 @@
-name: filtering
-channels:
-  - bioconda
-  - conda-forge
-  - defaults
-dependencies:
-  - python=3.6.4
-  - pandas=0.22.0
-  - pytables
