@@ -1,0 +1,9 @@
+name: constraint_filtering
+channels:
+  - bioconda
+  - conda-forge
+  - defaults
+dependencies:
+  - python=3.7.10 # to resolve dependency problems with dinopy 2.0.3
+  - dinopy=2.0.3
+  - regex

@@ -1,7 +1,7 @@
-name: vsearch
+name: natrix_repair
 channels:
-  - bioconda
   - conda-forge
+  - bioconda
   - defaults
 dependencies:
-  - vsearch=2.15.2
+  - snakemake=6.4.1

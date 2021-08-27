@@ -1,9 +1,9 @@
 # General options
 general:
-        filename : example_data # The filename of the project folder, primertable (.csv) and configfile (.yaml).
-        primertable: example_data.csv # Path to the primertable.
+        filename : mosla_logo # The filename of the project folder, primertable (.csv) and configfile (.yaml).
+        primertable: mosla_logo.csv # Path to the primertable.
         units: units.tsv # Path to the sequencing unit sheet.
-        cores : 8 # Amount of cores available for the workflow.
+        cores : 7 # Amount of cores available for the workflow.
         multiqc : FALSE  # Initial quality check (fastqc & multiqc), currently only works for not yet assembled reads.
         demultiplexing: FALSE # Demultiplexing for reads that were not demultiplexed by the sequencing company (slow).
         read_sorting: FALSE # Read sorting for paired end reads that were not sorted by the sequencing company (slow).
@@ -13,17 +13,18 @@ general:
 
 constraint_filtering:
 #        constraints: ['homopolymer','undesired_subsequences','overall_gc_content','windowed_gc_content','kmer_counting']
-        constraints: ['homopolymer','undesired_subsequences', 'windowed_gc_content']
-        after_demultiplexing: FALSE
+#        constraints: ['homopolymer','undesired_subsequences', 'windowed_gc_content']
+        constraints: ['homopolymer','undesired_subsequences']
+        after_demultiplexing: TRUE
         after_quality_control: FALSE
-        after_assembly: FALSE
-        primer_length: 0 #ignore first and last x bases when filtering directly after demultiplex
+        after_assembly: TRUE
+        primer_length: 20
         homopolymer:
                 count: 5
         windowed_gc_content:
                 gc_min: 0.4
                 gc_max: 0.6
-                window_size: 25
+                window_size: 30
         overall_gc_content:
                 gc_min: 0.3
                 gc_max: 0.7

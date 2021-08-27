@@ -17,13 +17,21 @@ if config["general"]["paired_End"]:
 else:
     reads = 1
 
+CONSTRAINT_FILTER_1 = '_constraint_filtered' if config['constraint_filtering']['after_demultiplexing'] else ''
+CONSTRAINT_FILTER_2 = '_constraint_filtered' if config['constraint_filtering']['after_quality_control'] else ''
+CONSTRAINT_FILTER_3 = '_constraint_filtered' if config['constraint_filtering']['after_assembly'] else ''
+
 rule all:
     input:
-        expand("results/assembly/{unit.sample}_{unit.unit}/{unit.sample}_{unit.unit}_assembled.fastq", unit=units.reset_index().itertuples())
+        expand("results/assembly/{unit.sample}_{unit.unit}/{unit.sample}_{unit.unit}_assembled{filtered}.fastq",
+            filtered=CONSTRAINT_FILTER_3,
+            unit=units.reset_index().itertuples())
 
 ruleorder: assembly > prinseq
 
+include: "rules/demultiplexing.smk"
 include: "rules/quality_control.smk"
 include: "rules/read_assembly.smk"
 include: "rules/dereplication.smk"
 include: "rules/chim_rm.smk"
+include: "rules/constraint_filtering.smk"

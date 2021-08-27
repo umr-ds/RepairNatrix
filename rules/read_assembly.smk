@@ -1,16 +1,8 @@
 def get_fastq(wildcards):
     if not is_single_end(wildcards.sample, wildcards.unit):
-        return expand("demultiplexed/{sample}_{unit}_{group}.fastq",
+        return expand("demultiplexed/{sample}_{unit}_{group}{filtered}.fastq", filtered=CONSTRAINT_FILTER_1,
                         group=[1,2], **wildcards)
-    return "demultiplexed/{sample}_{unit}_1.fastq".format(**wildcards)
-
-rule unzip:
-    input:
-         "demultiplexed/{sample}_{unit}_R{read}.fastq.gz"
-    output:
-        temp("demultiplexed/{sample}_{unit}_{read}.fastq")
-    shell: 
-         "gunzip -c {input} > {output}"
+    return "demultiplexed/{sample}_{unit}_1{filtered}.fastq".format(filtered=CONSTRAINT_FILTER_1, **wildcards)
 
 rule define_primer:
     input:
@@ -69,8 +61,8 @@ rule cutadapt:
 rule assembly:
     input:
         expand(
-        "results/assembly/{{sample}}_{{unit}}/{{sample}}_{{unit}}_{read}.fastq",
-        read=reads),
+        "results/assembly/{{sample}}_{{unit}}/{{sample}}_{{unit}}_{read}{filtered}.fastq",
+        filtered=CONSTRAINT_FILTER_2, read=reads),
         primer_t="primer_table.csv"
     output:
         "results/assembly/{sample}_{unit}/{sample}_{unit}_assembled.fastq"
@@ -92,7 +84,7 @@ rule assembly:
 
 rule copy_to_fasta:
     input:
-        "results/assembly/{sample}_{unit}/{sample}_{unit}_assembled.fastq"
+        expand("results/assembly/{{sample}}_{{unit}}/{{sample}}_{{unit}}_assembled{filtered}.fastq",filtered=CONSTRAINT_FILTER_3)
     output:
         "results/assembly/{sample}_{unit}/{sample}_{unit}.fasta"
     conda:

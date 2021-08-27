@@ -119,3 +119,77 @@ qc:
     maximum: 1.0
     minimum: 0.0
     type: float
+#constraint_filtering:
+#  constraints:
+#    default: ['homopolymer','undesired_subsequences','overall_gc_content','windowed_gc_content','kmer_counting']
+#    description: "array containing the filtering rules to be applied"
+#    type: "array",
+#    items: {
+#      oneOf: "homopolymer, undesired_subsequences, overall_gc_content, windowed_gc_content, kmer_counting"
+#    }
+#    uniqueItems: true
+#  after_demultiplexing:
+#    default: false
+#    description: "filter after demultiplexing"
+#    type: boolean
+#  after_quality_control:
+#    default: false
+#    description: "filter after quality control"
+#    type: boolean
+#  after_assembly:
+#    default: false
+#    description: "filter after assembly"
+#    type: boolean
+#  homopolymer:
+#    count:
+#      default: 5
+#      description: "homopolymers length"
+#      minimum: 0
+#      type: int
+#  windowed_gc_content:
+#    gc_min:
+#      default: 0.3
+#      description: "gc min"
+#      maximum: 1.0
+#      minimum: 0.0
+#      type: float
+#    gc_max:
+#      default: 0.7
+#      description: "gc max"
+#      maximum: 1.0
+#      minimum: 0.0
+#      type: float
+#    window_size:
+#      default: 50
+#      description: "window size"
+#      minimum: 1
+#      type: int
+#  overall_gc_content:
+#    gc_min:
+#      default: 0.3
+#      description: "gc min"
+#      maximum: 1.0
+#      minimum: 0.0
+#      type: float
+#    gc_max:
+#      default: 0.7
+#      description: "gc max"
+#      maximum: 1.0
+#      minimum: 0.0
+#      type: float
+#  undesired_subsequences:
+#    file:
+#      default: 'scripts/constraints/undesired_subsequences.txt'
+#      description: "filename with undesired sequences, one per line"
+#      type: string
+#  kmer_counting:
+#    k:
+#      default: 20
+#      description: "kmer"
+#      minimum: 1
+#      type: int
+#    upper_bound:
+#      default: 2
+#      description: "upper bound"
+#      minimum: 0
+#      type: int

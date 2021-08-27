@@ -1,5 +1,10 @@
 # Change Log
 
+## 2021-05-28
+### Changed
+- added constraint_filtering (needs snakemake version 6!)
+- update to current Natrix
+
 ## 2020-10-01
 
 ### Changed
