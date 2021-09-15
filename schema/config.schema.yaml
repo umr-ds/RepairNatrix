@@ -109,6 +109,11 @@ qc:
     description: "Minimum quality sequence check (prinseq), filtering of sequences according to the PHRED quality score before the assembly."
     minimum: 0
     type: int
+  trim_to_length:
+    default: 0
+    description: "(prinseq) if prinseq should trim the reads & and to what length it should trim (if 0 it doesn't trim)."
+    minimum: 0
+    type: int
   primer_offset:
     default: false
     description: "Using PANDAseq to remove primer sequences by length offset instead of sequence identity."

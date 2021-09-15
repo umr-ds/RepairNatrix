@@ -1,59 +1,54 @@
-# General options
 general:
-        filename : mosla_logo # The filename of the project folder, primertable (.csv) and configfile (.yaml).
-        primertable: mosla_logo.csv # Path to the primertable.
-        units: units.tsv # Path to the sequencing unit sheet.
-        cores : 7 # Amount of cores available for the workflow.
-        multiqc : FALSE  # Initial quality check (fastqc & multiqc), currently only works for not yet assembled reads.
-        demultiplexing: FALSE # Demultiplexing for reads that were not demultiplexed by the sequencing company (slow).
-        read_sorting: FALSE # Read sorting for paired end reads that were not sorted by the sequencing company (slow).
-        already_assembled: FALSE # Skipping of the quality control and read assembly steps for data that is already assembled.
-        paired_End: TRUE # The format of the sequencing data, TRUE if the reads are in paired-end format.
-        name_ext: R1 # The identifier for the forward read (for the reverse read the 1 is switched with 2, if the data is in paired-end format), has to be included at the end of the file name, before the file format identifier (including for single end files).
-
+  filename: mosla_logo
+  primertable: mosla_logo.csv
+  units: units.tsv
+  cores: 7
+  multiqc: false
+  demultiplexing: false
+  read_sorting: false
+  already_assembled: false
+  paired_End: true
+  name_ext: R1
 constraint_filtering:
-#        constraints: ['homopolymer','undesired_subsequences','overall_gc_content','windowed_gc_content','kmer_counting']
-#        constraints: ['homopolymer','undesired_subsequences', 'windowed_gc_content']
-        constraints: ['homopolymer','undesired_subsequences']
-        after_demultiplexing: TRUE
-        after_quality_control: FALSE
-        after_assembly: TRUE
-        primer_length: 20
-        homopolymer:
-                count: 5
-        windowed_gc_content:
-                gc_min: 0.4
-                gc_max: 0.6
-                window_size: 30
-        overall_gc_content:
-                gc_min: 0.3
-                gc_max: 0.7
-        undesired_subsequences:
-                file: 'scripts/constraints/undesired_subsequences.txt'
-        kmer_counting:
-                k: 20
-                upper_bound: 2
-
-# Quality check and primer removal
+  constraints:
+  - homopolymer
+  - undesired_subsequences
+  - windowed_gc_content
+  after_demultiplexing: true
+  after_quality_control: false
+  after_assembly: true
+  primer_length: 20
+  sequence_length: 160
+  homopolymer:
+    count: 6
+  windowed_gc_content:
+    gc_min: 0.4
+    gc_max: 0.6
+    window_size: 50
+  overall_gc_content:
+    gc_min: 0.3
+    gc_max: 0.7
+  undesired_subsequences:
+    file: scripts/constraints/undesired_subsequences.txt
+  kmer_counting:
+    k: 20
+    upper_bound: 2
 qc:
-        threshold : 0.9 # PANDAseq score threshold a sequence must meet to be kept in the output.
-        minoverlap : 15 # Sets the minimum overlap between forward and reverse reads.
-        minqual : 1 # Minimal quality score for bases in an assembled read to be accepted by PANDAseq.
-        minlen : 100 # The minimal length of a sequence after primer removal to be accepted by PANDAseq.
-        maxlen : 600 # The maximal length of a sequence after primer removal to be accepted by PANDAseq.
-        primer_offset : FALSE # Using PANDAseq to remove primer sequences by length offset instead of sequence identity.
-        mq : 25 # Minimum quality sequence check (prinseq), filtering of sequences according to the PHRED quality score before the assembly.
-        barcode_removed: TRUE # Boolean that indicates if the sequence is free of barcodes.
-        all_primer : FALSE # Boolean that indicates if the sequence is free of any kind of additional subsequences (primer, barcodes etc.).
-
-# Dereplication
+  threshold: 0.9
+  minoverlap: 15
+  minqual: 1
+  minlen: 160
+  maxlen: 160
+  primer_offset: false
+  mq: 25
+  trim_to_length : 180
+  barcode_removed: true
+  all_primer: false
 derep:
-        clustering : 1 # Percent identity for cdhit (dereplication) (1 = 100%), if cdhit is solely to be used for dereplication (recommended), keep the default value.
-        length_overlap : 0.0 # Length difference cutoff, default 0.0 if set to 0.9, the shorter sequences need to be at least 90% length of the representative of the cluster.
-        representative: most_common # Which sequence to use as a representative sequence per CDHIT cluster. longest = the longest sequence of the corresponding cluster, most_common = the most common sequence of the corresponding cluster.
-
-# Chimera removal
+  clustering: 1
+  length_overlap: 0.0
+  representative: most_common
 chim:
-        beta : 8.0 # Weight of a "no" vote for the VSEARCH chimera detection algorithm.
-        pseudo_count : 1.2 # Pseudo - count prior on number of “no” votes.
-        abskew : 16 # Minimum abundance skew, definied by (min(abund.(paren1), abund.(paren2))) / abund.(child).
+  beta: 8.0
+  pseudo_count: 1.2
+  abskew: 16

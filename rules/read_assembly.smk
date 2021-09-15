@@ -27,7 +27,8 @@ rule prinseq:
         "results/assembly/{{sample}}_{{unit}}/{{sample}}_{{unit}}_{read}.fastq",
         read=reads)
     params:
-        config["qc"]["mq"]
+        mq = config["qc"]["mq"],
+        trim_to_length = config["qc"]["trim_to_length"]
     log:
         "results/logs/{sample}_{unit}/prinseq.log"
     conda:

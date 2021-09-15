@@ -42,6 +42,7 @@ qc:
         maxlen : 600 # The maximal length of a sequence after primer removal to be accepted by PANDAseq.
         primer_offset : FALSE # Using PANDAseq to remove primer sequences by length offset instead of sequence identity.
         mq : 25 # Minimum quality sequence check (prinseq), filtering of sequences according to the PHRED quality score before the assembly.
+        trim_to_length : 0 # (prinseq) if prinseq should trim the reads & and to what length it should trim (if 0 it doesn't trim)
         barcode_removed: TRUE # Boolean that indicates if the sequence is free of barcodes.
         all_primer : FALSE # Boolean that indicates if the sequence is free of any kind of additional subsequences (primer, barcodes etc.).
 

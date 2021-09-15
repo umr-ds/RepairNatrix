@@ -1,5 +1,9 @@
 # Change Log
 
+## 2021-08-25
+### Changed
+- prinseq trim options
+
 ## 2021-05-28
 ### Changed
 - added constraint_filtering (needs snakemake version 6!)
