@@ -1,5 +1,13 @@
 # Change Log
 
+## 2021-10-05
+### Changed
+- some cleanup (removed some not used right now stuff, its still in the git anyway)
+
+## 2021-09-xx
+### Changed
+- added vsearch derep&clustering
+
 ## 2021-08-25
 ### Changed
 - prinseq trim options

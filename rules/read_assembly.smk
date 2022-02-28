@@ -36,29 +36,6 @@ rule prinseq:
     script:
         "../scripts/prinseq.py"
 
-rule cutadapt:
-    input:
-        expand(
-        "results/assembly/{{sample}}_{{unit}}/{{sample}}_{{unit}}_{read}.fastq",
-        read=reads),
-        primer_t="primer_table.csv"
-    output:
-        expand(
-        "results/assembly/{{sample}}_{{unit}}/{{sample}}_{{unit}}_{read}_cut.fastq",
-        read=reads)
-    params:
-        paired_end=config["general"]["paired_End"],
-        bar_removed=config["qc"]["barcode_removed"],
-        prim_rm=config["qc"]["all_primer"],
-        minlen=config["qc"]["minlen"],
-        maxlen=config["qc"]["maxlen"]
-    conda:
-        "../envs/cutadapt.yaml"
-    log:
-        "results/logs/{sample}_{unit}/cutadapt.log"
-    script:
-        "../scripts/cutadapt.py"
-
 rule assembly:
     input:
         expand(

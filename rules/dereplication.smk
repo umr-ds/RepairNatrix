@@ -1,30 +1,26 @@
-rule cdhit:
+rule vsearch_derep:
     input:
         "results/assembly/{sample}_{unit}/{sample}_{unit}.fasta"
     output:
-        "results/assembly/{sample}_{unit}/{sample}_{unit}_cdhit.fasta",
-        temp("results/assembly/{sample}_{unit}/{sample}_{unit}_cdhit.fasta.clstr")
+        "results/assembly/{sample}_{unit}/{sample}_{unit}_derep.fasta"
     conda:
-        "../envs/dereplication.yaml"
-    threads: config["general"]["cores"]
-    params:
-        id_percent=config["derep"]["clustering"],
-        length_cutoff=config["derep"]["length_overlap"]
+        "../envs/vsearch.yaml"
+    log:
+        "results/logs/{sample}_{unit}/vsearch_derep.log"
     shell:
-        "cd-hit-est -i {input} -o {output[0]} -c {params.id_percent} -T"
-        " {threads} -s {params.length_cutoff} -M 2000 -sc 1 -d 0"
+        "vsearch --derep_fulllength {input} --output {output} --log {log}"
 
-rule cluster_sorting:
+rule vsearch_cluster:
     input:
-        "results/assembly/{sample}_{unit}/{sample}_{unit}_cdhit.fasta",
-        "results/assembly/{sample}_{unit}/{sample}_{unit}_cdhit.fasta.clstr",
-        "results/assembly/{sample}_{unit}/{sample}_{unit}.fasta"
+        "results/assembly/{sample}_{unit}/{sample}_{unit}_derep.fasta"
     output:
-        "results/assembly/{sample}_{unit}/{sample}_{unit}.dereplicated.fasta"
+        "results/assembly/{sample}_{unit}/{sample}_{unit}_cluster.fasta"
     conda:
-        "../envs/dereplication.yaml"
+        "../envs/vsearch.yaml"
     params:
-        repr=config["derep"]["representative"],
-        length_cutoff=config["derep"]["length_overlap"]
-    script:
-        "../scripts/dereplication.py"
+        id=config["derep"]["clustering_id"]
+    threads: config["general"]["cores"]
+    log:
+        "results/logs/{sample}_{unit}/vsearch_cluster.log"
+    shell:
+        "vsearch --cluster_fast {input} --consout {output} --id {params.id} --log {log} --threads {threads}"
