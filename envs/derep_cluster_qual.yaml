@@ -1,0 +1,41 @@
+name: derep_cluster_qual
+channels:
+  - bioconda
+  - salilab
+  - defaults
+dependencies:
+  - _libgcc_mutex=0.1=main
+  - _openmp_mutex=4.5=1_gnu
+  - bioawk=1.0=h5bf99c6_6
+  - biopython=1.78=py310h7f8727e_0
+  - blas=1.0=mkl
+  - bzip2=1.0.8=h7b6447c_0
+  - ca-certificates=2022.2.1=h06a4308_0
+  - certifi=2020.6.20=pyhd3eb1b0_3
+  - intel-openmp=2021.4.0=h06a4308_3561
+  - ld_impl_linux-64=2.35.1=h7274673_9
+  - libffi=3.3=he6710b0_2
+  - libgcc-ng=9.3.0=h5101ec6_17
+  - libgomp=9.3.0=h5101ec6_17
+  - libstdcxx-ng=9.3.0=hd4cf53a_17
+  - libuuid=1.0.3=h7f8727e_2
+  - mkl=2021.4.0=h06a4308_640
+  - mkl-service=2.4.0=py310h7f8727e_0
+  - mkl_fft=1.3.1=py310hd6ae3a3_0
+  - mkl_random=1.2.2=py310h00e6091_0
+  - ncurses=6.3=h7f8727e_2
+  - numpy=1.21.2=py310h20f2e39_0
+  - numpy-base=1.21.2=py310h79a1101_0
+  - openssl=1.1.1m=h7f8727e_0
+  - pip=21.2.4=py310h06a4308_0
+  - python=3.10.0=h12debd9_4
+  - readline=8.1.2=h7f8727e_1
+  - setuptools=58.0.4=py310h06a4308_0
+  - six=1.16.0=pyhd3eb1b0_1
+  - sqlite=3.37.2=hc218d9a_0
+  - tk=8.6.11=h1ccaba5_0
+  - tzdata=2021e=hda174b7_0
+  - vsearch=2.15.2=h95f258a_1
+  - wheel=0.37.1=pyhd3eb1b0_0
+  - xz=5.2.5=h7b6447c_0
+  - zlib=1.2.11=h7f8727e_4
