@@ -47,5 +47,6 @@ qc:
   all_primer: false
 
 derep:
+  centroid_selection: frequency
   clustering_id: 0.97
 
