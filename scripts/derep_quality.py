@@ -24,6 +24,6 @@ def get_records(seq_entries):
                         letter_annotations={"phred_quality": vals["quality"]})
 
 
-derep_seqs = derep(snakemake.input)
-with open(snakemake.output, "w") as outp:
+derep_seqs = derep(str(snakemake.input))
+with open(str(snakemake.output), "w") as outp:
     sio.write(get_records(derep_seqs), outp, "fastq")
