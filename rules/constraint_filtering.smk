@@ -3,8 +3,8 @@ rule constraint_filtering_base:
         output: temp("overwrite_this")
         params:
             constraints = config["constraint_filtering"],
-            primer_length = config["constraint_filtering"]["primer_length"],
-            sequence_length = config["constraint_filtering"]["sequence_length"],
+            #primer_length = config["constraint_filtering"]["primer_length"],
+            #sequence_length = config["constraint_filtering"]["sequence_length"],
             paired = config["general"]["paired_End"]
         log: "logs/overwrite_this.log"
         threads: config["general"]["cores"]
