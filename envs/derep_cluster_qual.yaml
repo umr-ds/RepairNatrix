@@ -6,7 +6,6 @@ channels:
 dependencies:
   - _libgcc_mutex=0.1=main
   - _openmp_mutex=4.5=1_gnu
-  - bioawk=1.0=h5bf99c6_6
   - biopython=1.78=py310h7f8727e_0
   - blas=1.0=mkl
   - bzip2=1.0.8=h7b6447c_0

@@ -36,3 +36,13 @@ elif config["derep"]["centroid_selection"] == "frequency":
             "../envs/derep_cluster_qual.yaml"
         script:
             "../scripts/derep_quality.py"
+
+    rule sorting:
+        input:
+            "results/assembly/{sample}_{unit}/{sample}_{unit}_derep.fastq"
+        output:
+            "results/assembly/{sample}_{unit}/{sample}_{unit}_sorted.fastq"
+        conda:
+            "../envs/derep_cluster_qual.yaml"
+        shell:
+            "fastq-sort --mean-qual -r {input} > {output}"
