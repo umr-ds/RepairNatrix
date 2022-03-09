@@ -37,3 +37,6 @@ cleanup.sh
 scripts/*_backup*
 .idea
 .idea/*
+**/__pycache__/**
+build/*
+dist/*
