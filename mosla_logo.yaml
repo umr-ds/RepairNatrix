@@ -14,8 +14,13 @@ constraint_filtering:
   - homopolymer
   - undesired_subsequences
   - windowed_gc_content
-  after_demultiplexing: true
-  after_quality_control: true
+  inplace_repair: false
+  repair_quality_score: 33
+  repair_after_demultiplexing: true
+  repair_after_quality_control: false
+  repair_after_assembly: true
+  after_demultiplexing: false
+  after_quality_control: false
   after_assembly: true
   primer_length: 20
   sequence_length: 160

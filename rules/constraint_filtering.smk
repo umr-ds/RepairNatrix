@@ -110,6 +110,6 @@ if (config['constraint_filtering']['repair_after_assembly']):
             #cluster="results/assembly/{sample}_{unit}/{sample}_{unit}_cluster.fasta"
         output:
             expand("results/assembly/{{sample}}_{{unit}}/{{sample}}_{{unit}}_assembled{repaired}.fastq",repaired=CONSTRAINT_REPAIRED_3),
-            expand("results/assembly/{{sample}}_{{unit}}/{{sample}}_{{unit}}_assembled_{repaired}_mapping.json", repaired=CONSTRAINT_REPAIRED_3),
+            expand("results/assembly/{{sample}}_{{unit}}/{{sample}}_{{unit}}_assembled{repaired}_mapping.json", repaired=CONSTRAINT_REPAIRED_3),
             #"results/assembly/{sample}_{unit}/{sample}_{unit}_derep_repaired.fastq",# "repaired" bases will have a lower quality score (and will be APPENDED - or replace the original ones?)
             #"results/assembly/{sample}_{unit}/{sample}_{unit}_derep_repair_mapping.json"  # mapping repaired reads to original reads
