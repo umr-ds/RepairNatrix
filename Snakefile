@@ -20,7 +20,9 @@ else:
 CONSTRAINT_FILTER_1 = '_constraint_filtered' if config['constraint_filtering']['after_demultiplexing'] else ''
 CONSTRAINT_FILTER_2 = '_constraint_filtered' if config['constraint_filtering']['after_quality_control'] else ''
 CONSTRAINT_FILTER_3 = '_constraint_filtered' if config['constraint_filtering']['after_assembly'] else ''
-
+CONSTRAINT_REPAIRED_1 = '_constraint_repaired' if config['constraint_filtering']['repair_after_demultiplexing'] else ''
+CONSTRAINT_REPAIRED_2 = '_constraint_repaired' if config['constraint_filtering']['repair_after_quality_control'] else ''
+CONSTRAINT_REPAIRED_3 = '_constraint_repaired' if config['constraint_filtering']['repair_after_assembly'] else ''
 rule all:
     input:
         expand("results/assembly/{unit.sample}_{unit.unit}/{unit.sample}_{unit.unit}_cluster.fasta",

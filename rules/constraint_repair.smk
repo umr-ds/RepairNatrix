@@ -1,18 +1,21 @@
 rule constraint_repair:
     input:
-        # todo
-        # rules json
-        "results/assembly/{sample}_{unit}/{sample}_{unit}_assembled.fastq"
+        # "results/assembly/{sample}_{unit}/{sample}_{unit}_assembled.fastq"
+        derep="results/assembly/{sample}_{unit}/{sample}_{unit}_derep.fasta",
+        cluster="results/assembly/{sample}_{unit}/{sample}_{unit}_cluster.fasta"
     output:
-        "repaired_seqs.fastq" # "repaired" bases will have a lower quality score and will be APPENDED!
-        "only_repaired_seqs.fastq"  # this fastq contains only the repaired bases
+        "results/assembly/{sample}_{unit}/{sample}_{unit}_repaired_cluster.fasta" # "repaired" bases will have a lower quality score (and will be APPENDED - or replace the original ones?)
+        "results/assembly/{sample}_{unit}/{sample}_{unit}_repair_mapping.json"  # mapping repaired reads to original reads
 
     params:
         sequence_length=config["constraint_filtering"]["sequence_length"],
-        min_gc_content=config["constraint_repair"]["min_gc_content"],
-        max_gc_content=config["constraint_repair"]["max_gc_content"],
-        max_homopolymer_length=config["constraint_repair"]["max_homopolymer_length"],
-        illegal_sequences=config["constraint_repair"]["illegal_sequences"],
+        min_gc_content=config["constraint_filtering"]["gc_content"]["gc_min"],
+        max_gc_content=config["constraint_filtering"]["gc_content"]["gc_max"],
+        max_homopolymer_length=config["constraint_filtering"]["homopolymer"]["count"],
+        illegal_sequences=config["constraint_filtering"]["undesired_subsequences"]["file"],
+        #todo add kmer checks to constraint_filtering code:
+        kmer_counting_k=config["constraint_filtering"]["kmer_counting"]["k"],
+        kmer_counting_upper_bound=config["constraint_filtering"]["kmer_counting"]["upper_bound"]
 
     conda:
         "../envs/constraint_repair.yaml"
