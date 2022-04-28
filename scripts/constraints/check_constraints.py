@@ -71,6 +71,57 @@ idea:
         - parameter: unique first X bases (int)
     - BEFORE forward/reverse-read-merging: limit GC content rule to windowed mode and skip last/first window.
 """
+def repair_clusters(clusters, desired_length):
+    """
+    clusters: list of Clusters, each cluster has a centroid and a list of sequences
+    (with a distance-value to the centroid)
+    IMPORTANT: clusters are sorted by distance to centroid!
+    desired_length: int, desired length of the sequences in the clusters
+    :returns: list of centroids with a quality score indicating the performed repairs together with the initial quality
+    """
+    #TODO: run different repairs based on the inpit-file:
+    # if we have a list of clusters(+centroids) we want to run a special repair for each cluster:
+    # - if the centroid does not fulfill all constraints:
+    #     - search in the cluster for the sequence that is closest to the centroid and fulfills all constraints
+    #     - if no such sequence exists:
+    #         - either: repair only the centroid
+    #         - or: repair _ALL_ sequences in the cluster and choose the one with the least changes
+    #         _and_ the shortest distance to the centroid
+    res_centroids = []
+    for i, centroid, cluster in enumerate(clusters):
+        all_violations = calc_errors(centroid)
+        res = [sum(x) for x in zip(*all_violations)]
+        if sum(res) == 0:
+            # there was no error in the centroid. OPTIONAL: mark as correct
+            res_centroids.append(centroid)
+            #continue
+        else:
+            # there was an error in the centroid: iterate over the cluster
+            #   and find the sequence that fulfills all constraints and is closest to the centroid
+            found = False
+            for seq in cluster:
+                seq_violations = calc_errors(seq)
+                res = [sum(x) for x in zip(*seq_violations)]
+                if sum(res) == 0:
+                    res_centroids.append(seq)
+                    found = True
+                    break
+                # else:
+                    # the sequence does not fulfill all constraints
+                    # continue
+            if not found:
+                # no sequence in the cluster fulfills all constraints
+                #   -> repair the centroid
+                for elem in [centroid] + cluster:
+                    repair_res = try_repair(elem, desired_length)
+                    repair_violations = calc_errors(repair_res[1])
+                    res = [sum(x) for x in zip(*repair_violations)]
+                    if sum(res) == 0:
+                        # the repair worked
+                        res_centroids.append(repair_res[1])
+                        break
+                    else:
+                        continue
 
 
 def allmax(a, return_index=True):
@@ -277,7 +328,6 @@ def phred_error_prob_to_quality_score(phred_error_prob, quality_score_format="Il
 # - use sequence length as a constraint
 #   -> if longer than certain length & homopolymer: try removing bases from homopolymer
 
-# TODO:
 # - ideally we would want to check if there is a "close" sequence that adheres to all restrictions (clustering)
 def main():
     repaired_tuples = []
@@ -370,4 +420,6 @@ def main():
 
 
 if __name__ == "__main__":
+    #TODO include a call to repair_cluster IF we have a clustered input file!
+    # only in the other cases we want to call default repair (main)
     main()
