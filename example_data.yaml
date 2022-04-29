@@ -48,5 +48,6 @@ qc:
 
 # Dereplication and clustering
 derep:
+        minsize: 2 #Minimal number of identical sequences for dereplication, sequences seen less times than this number will be discarded
         centroid_selection : quality # Cluster centroid selection, either quality (sequence with the highest phred score as centroid) or frequency (most common sequence as centroid)
         clustering_id: 0.97

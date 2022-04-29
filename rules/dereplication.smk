@@ -6,10 +6,12 @@ if config["derep"]["centroid_selection"] == "frequency":
             "results/assembly/{sample}_{unit}/{sample}_{unit}_derep.fasta"
         conda:
             "../envs/vsearch.yaml"
+        params:
+            minsize=config["derep"]["minsize"]
         log:
             "results/logs/{sample}_{unit}/vsearch_derep.log"
         shell:
-            "vsearch --derep_fulllength {input} --output {output} --log {log}"
+            "vsearch --derep_fulllength {input} --output {output} --log {log} --minuniquesize {minsize}"
 
     rule vsearch_cluster:
         input:
@@ -35,6 +37,8 @@ elif config["derep"]["centroid_selection"] == "quality":
             "results/assembly/{sample}_{unit}/{sample}_{unit}_derep.fastq"
         conda:
             "../envs/derep_cluster_qual.yaml"
+        params:
+            minsize=config["derep"]["minsize"]
         script:
             "../scripts/derep_quality.py"
 
@@ -72,3 +76,13 @@ elif config["derep"]["centroid_selection"] == "quality":
             "results/logs/{sample}_{unit}/vsearch_cluster.log"
         shell:
             "vsearch --usersort --cluster_smallmem {input} --centroid {output} --id {params.id} --log {log} --threads {threads}"
+
+rule unfold_fasta:
+    input:
+        "results/assembly/{sample}_{unit}/{sample}_{unit}_cluster.fasta"
+    output:
+        "results/assembly/{sample}_{unit}/{sample}_{unit}_fin.fasta"
+    conda:
+        "../envs/seqtk.yaml"
+    shell:
+        "seqtk seq {input} > {output}"

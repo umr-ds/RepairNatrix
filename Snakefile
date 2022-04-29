@@ -23,8 +23,10 @@ CONSTRAINT_FILTER_3 = '_constraint_filtered' if config['constraint_filtering']['
 
 rule all:
     input:
-        expand("results/assembly/{unit.sample}_{unit.unit}/{unit.sample}_{unit.unit}_cluster.fasta",
+        expand("results/assembly/{unit.sample}_{unit.unit}/{unit.sample}_{unit.unit}_fin.fasta",
             unit=units.reset_index().itertuples())
+        #expand("results/assembly/{unit.sample}_{unit.unit}/{unit.sample}_{unit.unit}_cluster.fasta",
+        #    unit=units.reset_index().itertuples())
 
 ruleorder: assembly > prinseq
 
@@ -32,3 +34,5 @@ include: "rules/demultiplexing.smk"
 include: "rules/read_assembly.smk"
 include: "rules/dereplication.smk"
 include: "rules/constraint_filtering.smk"
+
+"results/assembly/{sample}_{unit}/{sample}_{unit}_fin.fasta"
