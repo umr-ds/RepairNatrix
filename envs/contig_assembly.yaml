@@ -1,0 +1,9 @@
+name: contig_assembly
+channels:
+  - bioconda
+  - conda-forge
+  - defaults
+dependencies:
+  - spades
+  - blast
+  - tqdm
