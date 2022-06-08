@@ -1,12 +1,22 @@
+rule wrap_fasta:
+    input:
+        "results/assembly/{sample}_{unit}/{sample}_{unit}_derep.fasta" if config["derep"]["centroid_selection"] == "frequency" else "results/assembly/{sample}_{unit}/{sample}_{unit}_sorted.fasta"  #"results/assembly/{sample}_{unit}/{sample}_{unit}.dereplicated.fasta"
+    output:
+        "results/assembly/{sample}_{unit}/{sample}_{unit}.dereplicated.fasta"
+    conda:
+        "../envs/seqtk.yaml"
+    shell:
+        "seqtk seq {input} > {output}"
+
 rule data_assembly:
     input:
         derep = "results/assembly/{sample}_{unit}/{sample}_{unit}.dereplicated.fasta"
     output:
-        blast_hits = "results/data_assembly/{sample}_{unit}/blast_hits",
-        data_hits = "results/data_assembly/{sample}_{unit}/data_reads.fasta",
-        contigs = "results/data_assembly/{sample}_{unit}/spades/contigs.fasta",
+        blast_hits = "results/contig_assembly/{sample}_{unit}/blast_hits",
+        data_hits = "results/contig_assembly/{sample}_{unit}/data_reads.fasta",
+        contigs = "results/contig_assembly/{sample}_{unit}/spades/contigs.fasta",
     params:
-        spades_dir = "results/data_assembly/{sample}_{unit}/spades",
+        spades_dir = "results/contig_assembly/{sample}_{unit}/spades",
         blast_db = config["contig_assembly"]["blast_db"],
         sample = "{sample}"
     conda:
@@ -16,8 +26,8 @@ rule data_assembly:
 
 rule rename_data_assembly:
     input:
-        "results/data_assembly/{sample}_{unit}/spades/contigs.fasta"
+        "results/contig_assembly/{sample}_{unit}/spades/contigs.fasta"
     output:
-        "results/data_assembly/assemblies/{sample}_{unit}.fasta",
+        "results/contig_assembly/assemblies/{sample}_{unit}.fasta",
     shell:
         "cp {input} {output}"

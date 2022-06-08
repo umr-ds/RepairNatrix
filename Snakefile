@@ -27,7 +27,7 @@ CONSTRAINT_REPAIRED_3 = '_constraint_repaired' if config['constraint_filtering']
 if config["general"]["in_vivo"]:
     rule all:
         input:
-            expand("results/data_assembly/assemblies/{unit.sample}_{unit.unit}.fasta", unit=units.reset_index().itertuples())
+            expand("results/contig_assembly/assemblies/{unit.sample}_{unit.unit}.fasta", unit=units.reset_index().itertuples())
 else:
     rule all:
         input:
@@ -40,3 +40,4 @@ include: "rules/demultiplexing.smk"
 include: "rules/read_assembly.smk"
 include: "rules/dereplication.smk"
 include: "rules/constraint_filtering.smk"
+include: "rules/contig_assembly.smk"

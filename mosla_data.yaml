@@ -1,0 +1,62 @@
+general:
+  filename: mosla_data
+  primertable: mosla_data.csv
+  units: units.tsv
+  cores: 15
+  demultiplexing: false
+  read_sorting: false
+  already_assembled: false
+  paired_End: true
+  name_ext: R1
+  in_vivo: true # Using in-vivo data, the data will be blasted against the carrier organism and hits will be discarded, followed by contig assembly using SPAdes
+
+constraint_filtering:
+  constraints:
+  - homopolymer
+  - undesired_subsequences
+  - windowed_gc_content
+  inplace_repair: false
+  repair_quality_score: 33
+  repair_after_demultiplexing: false
+  repair_after_quality_control: false
+  repair_after_assembly: false
+  after_demultiplexing: false
+  after_quality_control: false
+  after_assembly: false
+  primer_length: 20
+  sequence_length: 160
+  homopolymer:
+    count: 7
+  windowed_gc_content:
+    gc_min: 0.4
+    gc_max: 0.6
+    window_size: 50
+  overall_gc_content:
+    gc_min: 0.3
+    gc_max: 0.7
+  undesired_subsequences:
+    file: scripts/constraints/undesired_subsequences.txt
+  kmer_counting:
+    k: 20
+    upper_bound: 2
+
+contig_assembly:
+        blast_db:
+                sinorhizobium: blast_db/mosla_db
+                bacillus: blast_db/mosla_db_bacillus
+qc:
+  threshold: 0.9
+  minoverlap: 15
+  minqual: 1
+  minlen: 100
+  maxlen: 600
+  primer_offset: false
+  mq: 25
+  trim_to_length : 180
+  barcode_removed: true
+  all_primer: true
+
+derep:
+  centroid_selection: frequency
+  clustering_id: 0.97
+
