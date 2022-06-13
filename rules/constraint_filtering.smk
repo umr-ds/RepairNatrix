@@ -81,6 +81,7 @@ if (config['constraint_filtering']['repair_after_demultiplexing']):
             expand("demultiplexed/{{sample}}_{{unit}}_{read}.fastq",read=reads),
             #derep="results/assembly/{sample}_{unit}/{sample}_{unit}_derep.fasta",
             #cluster="results/assembly/{sample}_{unit}/{sample}_{unit}_cluster.fasta"
+            cluster="results/assembly/{sample}_{unit}/{sample}_{unit}_cluster.fasta"
         output:
             expand("demultiplexed/{{sample}}_{{unit}}_{read}{repaired}.fastq",read=reads,repaired=CONSTRAINT_REPAIRED_1),
             expand("demultiplexed/{{sample}}_{{unit}}_{read}{repaired}_mapping.json", read=reads, repaired=CONSTRAINT_REPAIRED_1),
@@ -93,7 +94,7 @@ if (config['constraint_filtering']['repair_after_quality_control']):
         input:
             expand("results/assembly/{{sample}}_{{unit}}/{{sample}}_{{unit}}_{read}.fastq",read=reads),
             #derep="results/assembly/{sample}_{unit}/{sample}_{unit}_derep.fasta",
-            #cluster="results/assembly/{sample}_{unit}/{sample}_{unit}_cluster.fasta"
+            cluster="results/assembly/{sample}_{unit}/{sample}_{unit}_cluster.fasta"
         output:
             expand("results/assembly/{{sample}}_{{unit}}/{{sample}}_{{unit}}_{read}{repaired}.fastq",read=reads,repaired=CONSTRAINT_REPAIRED_2),
             expand("results/assembly/{{sample}}_{{unit}}/{{sample}}_{{unit}}_{read}{repaired}_mapping.json", read=reads, repaired=CONSTRAINT_REPAIRED_2),
@@ -105,9 +106,9 @@ if (config['constraint_filtering']['repair_after_assembly']):
     # with "best" being: 1) the smallest distance to the current centroid and 2) fulfilling all constraints
     use rule constraint_repair_base as constraint_repair_3 with:
         input:
-            "results/assembly/{sample}_{unit}/{sample}_{unit}_assembled.fastq"
+            "results/assembly/{sample}_{unit}/{sample}_{unit}_assembled.fastq",
             #derep="results/assembly/{sample}_{unit}/{sample}_{unit}_derep.fasta",
-            #cluster="results/assembly/{sample}_{unit}/{sample}_{unit}_cluster.fasta"
+            cluster="results/assembly/{sample}_{unit}/{sample}_{unit}_cluster.fasta"
         output:
             expand("results/assembly/{{sample}}_{{unit}}/{{sample}}_{{unit}}_assembled{repaired}.fastq",repaired=CONSTRAINT_REPAIRED_3),
             expand("results/assembly/{{sample}}_{{unit}}/{{sample}}_{{unit}}_assembled{repaired}_mapping.json", repaired=CONSTRAINT_REPAIRED_3),
