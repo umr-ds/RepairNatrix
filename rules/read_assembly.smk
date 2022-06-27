@@ -63,7 +63,8 @@ rule assembly:
 if config["derep"]["centroid_selection"] == "frequency":
     rule copy_to_fasta:
         input:
-            expand("results/assembly/{{sample}}_{{unit}}/{{sample}}_{{unit}}_assembled{repaired}{filtered}.fastq",repaired=CONSTRAINT_REPAIRED_3,filtered=CONSTRAINT_FILTER_3)
+            "results/assembly/{sample}_{unit}/{sample}_{unit}_assembled.fastq"
+            #expand("results/assembly/{{sample}}_{{unit}}/{{sample}}_{{unit}}_{read}{repaired}{filtered}.fastq",read=reads ,repaired=CONSTRAINT_REPAIRED_2,filtered=CONSTRAINT_FILTER_2)
         output:
             "results/assembly/{sample}_{unit}/{sample}_{unit}.fasta"
         conda:

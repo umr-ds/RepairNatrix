@@ -17,6 +17,7 @@ rule constraint_repair_base:
         input: "overwrite_this"
         output: "overwrite_this"
         params:
+            maximum_repair_cycles=config["constraint_filtering"]["maximum_repair_cycles"],
             inplace_repair=config["constraint_filtering"]["inplace_repair"],
             repair_quality_score=config["constraint_filtering"]["repair_quality_score"],
             sequence_length=config["constraint_filtering"]["sequence_length"],
@@ -67,8 +68,8 @@ if (config['constraint_filtering']['after_assembly']):
         log:
             "results/logs/{sample}_{unit}/constraint_filtering_after_assembly.txt"
         output:
-            expand("results/assembly/{{sample}}_{{unit}}/{{sample}}_{{unit}}_assembled{repaired}{filtered}.fastq",repaired=CONSTRAINT_REPAIRED_3, filtered=CONSTRAINT_FILTER_3),
-            expand("results/assembly/{{sample}}_{{unit}}/{{sample}}_{{unit}}_assembled{repaired}{filtered}_out.fastq",repaired=CONSTRAINT_REPAIRED_3, filtered=CONSTRAINT_FILTER_3)
+            expand("results/assembly/{{sample}}_{{unit}}/{{sample}}_{{unit}}{repaired}{filtered}.fastq",repaired=CONSTRAINT_REPAIRED_3, filtered=CONSTRAINT_FILTER_3),
+            expand("results/assembly/{{sample}}_{{unit}}/{{sample}}_{{unit}}{repaired}{filtered}_out.fastq",repaired=CONSTRAINT_REPAIRED_3, filtered=CONSTRAINT_FILTER_3)
         params:
             constraints=config["constraint_filtering"],
             primer_length=0,
@@ -108,9 +109,9 @@ if (config['constraint_filtering']['repair_after_assembly']):
         input:
             "results/assembly/{sample}_{unit}/{sample}_{unit}_assembled.fastq",
             #derep="results/assembly/{sample}_{unit}/{sample}_{unit}_derep.fasta",
-            cluster="results/assembly/{sample}_{unit}/{sample}_{unit}_cluster.fasta"
+            cent="results/assembly/{sample}_{unit}/{sample}_{unit}_cluster.fasta"
         output:
-            expand("results/assembly/{{sample}}_{{unit}}/{{sample}}_{{unit}}_assembled{repaired}.fastq",repaired=CONSTRAINT_REPAIRED_3),
-            expand("results/assembly/{{sample}}_{{unit}}/{{sample}}_{{unit}}_assembled{repaired}_mapping.json", repaired=CONSTRAINT_REPAIRED_3),
+            expand("results/assembly/{{sample}}_{{unit}}/{{sample}}_{{unit}}{repaired}.fasta",repaired=CONSTRAINT_REPAIRED_3),
+            expand("results/assembly/{{sample}}_{{unit}}/{{sample}}_{{unit}}{repaired}_clusters.json", repaired=CONSTRAINT_REPAIRED_3),
             #"results/assembly/{sample}_{unit}/{sample}_{unit}_derep_repaired.fastq",# "repaired" bases will have a lower quality score (and will be APPENDED - or replace the original ones?)
             #"results/assembly/{sample}_{unit}/{sample}_{unit}_derep_repair_mapping.json"  # mapping repaired reads to original reads

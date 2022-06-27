@@ -9,8 +9,11 @@ from collections import namedtuple
 import dinopy
 import logging
 import multiprocessing
+from tqdm import tqdm
 from functools import partial
 import numpy as np
+
+pbar = None
 
 # try:
 # TODO. use cdnarules where possible
@@ -21,7 +24,6 @@ from homopolymers import homopolymer_error_val
 from kmer import kmer_counting_error_val
 from undesired_subsequences import UndesiredSubSequenceFinder
 
-MAX_ITERATIONS = 50
 allowed_bases = {"A", "C", "G", "T"}
 DEBUG = False
 quality_score_format_dict = {"Illumina 1.8+": 33, "PacBio": 33, "Sanger": 33,
@@ -51,6 +53,8 @@ try:
     kmer_max_count = snakemake.params.kmer_max_count
     cores = snakemake.threads
     undesired_subsequences_file = snakemake.params.subsequences_file
+    length = snakemake.params.sequence_length
+    MAX_ITERATIONS = snakemake.params.maximum_repair_cycles
 except NameError as ne:
     logging.basicConfig(level=logging.DEBUG)
     logging.warning("No snakemake detected. Using default values for parameters.")
@@ -62,7 +66,9 @@ except NameError as ne:
     kmer_k = 10
     kmer_max_count = 20
     cores = 8
+    length = 160
     undesired_subsequences_file = "undesired_subsequences.txt"
+    MAX_ITERATIONS = 50
 
 undesired_subsequences_finder = UndesiredSubSequenceFinder(undesired_subsequences_file)
 
@@ -75,12 +81,14 @@ idea:
 
 
 def repair_single_cluster(single_cluster_data, desired_length=160):
+    global pbar
+    pbar.update(1)
     centroid, cluster = single_cluster_data
     all_violations = calc_errors(centroid)
     res = [sum(x) for x in zip(*all_violations)]
     if sum(res) == 0 and len(res) == desired_length:
         # there was no error in the centroid. OPTIONAL: mark as correct
-        return "C", centroid
+        return "C", centroid # Centeroid was Correct
         # continue
     else:
         # there was an error in the centroid: iterate over the cluster
@@ -90,22 +98,28 @@ def repair_single_cluster(single_cluster_data, desired_length=160):
             seq_violations = calc_errors(seq)
             res = [sum(x) for x in zip(*seq_violations)]
             if sum(res) == 0 and len(res) == desired_length:
-                return "S_C", seq
+                return "S_C", seq # Centeroid was substituted - new centeroid is correct - no repair was needed!
             # else:
             # the sequence does not fulfill all constraints
             # continue
         if not found:
             # no sequence in the cluster fulfills all constraints
             #   -> repair the centroid
-            for elem in [centroid] + cluster:
-                repair_res = try_repair(("cluster_repair", elem), desired_length)
+            possible_results = []
+            pair_with_quality = namedtuple("cluster_repair", ["name", "seq", "quality"])
+            for i, elem in enumerate([centroid] + cluster):
+                repair_res = try_repair(pair_with_quality(f"cluster_repair_{i}", elem, repair_quality_score), desired_length)
                 repair_violations = calc_errors(repair_res[1])
                 res = [sum(x) for x in zip(*repair_violations)]
                 if sum(res) == 0 and len(res) == desired_length:
-                    # the repair worked
-                    return f"S_R_C_{repair_res[4]}", repair_res[1]
+                    # run repair for all elements in the cluster
+                    # and take the repaired sequence with the LEAST repairs needed!
+                    # centeroid was substituted - substituted sequnece had to be repaired
+                    possible_results.append((repair_res[4], (f"S_R_C_{repair_res[4]}", repair_res[1])))
                 else:
                     continue
+            if len(possible_results) > 0:
+                return sorted(possible_results, key=lambda x: x[0])[0][1]
         return "F", centroid
 
 def repair_clusters(desired_length):
@@ -117,9 +131,9 @@ def repair_clusters(desired_length):
     :returns: list of centroids with a quality score indicating the performed repairs together with the initial quality
     """
     # TODO: require "finished.clusters" file existing!
-
+    global pbar
     try:
-        input_file = snakemake.input[0]
+        input_file = snakemake.input.cent # centeroid file...
     except NameError:
         logging.info("Running in non-snakemake mode - this should be used for testing only")
         input_file = "../../results/assembly/MOSLA12_A/MOSLA12_A_assembled.fastq"
@@ -133,11 +147,12 @@ def repair_clusters(desired_length):
     input_folder = os.path.dirname(input_file)
     logging.info(f"Input folder: {input_folder}")
     for cluster_file in glob.glob(f"{input_folder}/clust*"):
-        logging.info("Processing file: " + cluster_file)
+        #logging.info("Processing file: " + cluster_file)
         cluster = [read.sequence.decode() for read in dinopy.FastaReader(cluster_file).reads(True)]
         clusters.append((cluster[0], cluster[1:]))
     clusters = sorted(clusters, key=lambda x: len(x[1]), reverse=True)
-
+    output_file = input_file.replace("cluster.fasta", "assembled_constraint_repaired.fasta")
+    output_cluster_mapping_file = input_file.replace("cluster.fasta", "assembled_constraint_repaired_clusters.json")
     # TODO: run different repairs based on the input-file:
     # if we have a list of clusters(+centroids) we want to run a special repair for each cluster:
     # - if the centroid does not fulfill all constraints:
@@ -147,10 +162,47 @@ def repair_clusters(desired_length):
     #         - or: repair _ALL_ sequences in the cluster and choose the one with the least changes
     #         _and_ the shortest distance to the centroid
     # res_centroids = []
+    pbar = tqdm(total=len(clusters))
     p = multiprocessing.Pool(cores)
     res_centroids = [x for x in p.imap_unordered(partial(repair_single_cluster, desired_length=desired_length), iterable=clusters,
                                                  chunksize=math.ceil(len(clusters) / (cores * 10)))]
+    if not inplace_repair:
+        # read all entries of input_file (containing all initial centeroids
+        initial_centeroids = dinopy.FastaReader(input_file)
+        res_seqs = set([b for a,b in res_centroids])
+        # add original centeroid to
+        for org_centeroid_tuple in initial_centeroids.entries():
+            if org_centeroid_tuple.sequence not in res_seqs:
+                res_centroids.append((org_centeroid_tuple.sequence, "O_F_" + org_centeroid_tuple.name))
+                initial_centeroids += org_centeroid_tuple.sequence
+
+    if os.path.exists(output_file):
+        renamed_file = output_file.replace(".fasta", "_old.fasta")
+        print(f"[WARNING] File already exists, renaming old file to: {renamed_file}")
+        move(output_file, renamed_file)
+    with dinopy.FastaWriter(output_file) as out_file:
+        out_file.write_entries([(b, a.encode("utf-8")) for a, b in sorted(res_centroids, key=lambda tpl: sort_results(tpl[0]))], dtype=str)
+    if os.path.exists(output_cluster_mapping_file):
+        renamed_file = output_cluster_mapping_file.replace(".json", "_old.json")
+        print(f"[WARNING] File already exists, renaming old file to: {renamed_file}")
+        move(output_cluster_mapping_file, renamed_file)
+    with open(output_cluster_mapping_file, "w") as cluster_output:
+        json.dump([x for x in zip([b for a, b in res_centroids], clusters)], fp=cluster_output)
+    # TODO we want not only the choosen centeroid + quality estimation,
+    #  but also all other elements per cluster with their quality
     return res_centroids
+
+def sort_results(in_str):
+    if in_str == "C":  # centeroid was correct
+        return -1000
+    elif in_str == "S_C":  # centeroid was substituted from cluster, new centeroid correct
+        return -500
+    elif in_str.startswith("S_R_C_"):  # centeroid was (potentially) substituted; new centeroid was repaired (X repairs)
+        return int(in_str.split("_")[-1])
+    elif in_str == "F":  # repair failed (repair limit reached for all elements in the cluster!)
+        return MAX_ITERATIONS + 1000
+    elif in_str.startswith("O_F"):  # in case of INPLACE_REPAIR = False, we want to flag invalid original seqs as failed
+        return MAX_ITERATIONS + 100
 
 
 def allmax(a, return_index=True):
@@ -188,21 +240,22 @@ def calc_errors(seq):
     return results
 
 
-def repairInsertionWithDeletion(seq, desired_length):
-    # the sequence is a result of (multiple) insertions and deletions
-    # while this should not be the first option to choose (Occam's razor), this CAN happen...
+#def repairInsertionWithDeletion(seq, desired_length):
+# the sequence is a result of (multiple) insertions and deletions
+# while this should not be the first option to choose (Occam's razor), this CAN happen...
 
-    # first we enforce the desired length just like try_repair() does
+# first we enforce the desired length just like try_repair() does
 
-    # then we try removing a base to lower the error value
-    # -> if there is a different location with an error remaining, we then try to insert a base at that location
-    # -> if there is no error remaining:
-    #   -> the wrong base is removed
-    #   -> the missing insertion did not create a rule-violation
-    pass
+# then we try removing a base to lower the error value
+# -> if there is a different location with an error remaining, we then try to insert a base at that location
+# -> if there is no error remaining:
+#   -> the wrong base is removed
+#   -> the missing insertion did not create a rule-violation
 
 
-def try_repair(seq_instance: typing.NamedTuple, desired_length):
+def try_repair(seq_instance: typing.NamedTuple, desired_length, update_pbar=False):
+    if update_pbar:
+        pbar.update(1)
     if "quality" not in seq_instance or seq_instance[2] is None:
         # we might be in a FASTA-File and thus have no access to the quality scores
         phred_score = [repair_quality_score] * len(seq_instance[1])
@@ -220,7 +273,7 @@ def try_repair(seq_instance: typing.NamedTuple, desired_length):
     res = [sum(x) for x in zip(*results)]
     assert len(phred_score) == len(seq)
     check_and_modified_positions = set()
-    while len(seq) < desired_length:
+    while len(seq) < desired_length and no_changes < MAX_ITERATIONS:
         # DELETION ERROR:
         # this is a bit more complicated: we cant simply pick the position with the highest error-value
         # because errors might appear _after_ a possible deletion
@@ -268,7 +321,7 @@ def try_repair(seq_instance: typing.NamedTuple, desired_length):
                 break
         check_and_modified_positions.add(max_arg)
         if seq != min_seq:
-            no_changes += 1
+            no_changes = 0
             seq = min_seq
             phred_score = min_phred_score
             results = min_results
@@ -363,6 +416,7 @@ def phred_error_prob_to_quality_score(phred_error_prob, quality_score_format="Il
 
 # - ideally we would want to check if there is a "close" sequence that adheres to all restrictions (clustering)
 def main(desired_length=160):
+    global pbar
     repaired_tuples = []
     phred_error_prob_to_quality_score(quality_score_to_phred_error_prob(30))
     # Read in the fasta file _AFTER_ clustering
@@ -381,7 +435,6 @@ def main(desired_length=160):
 
     # with multiprocessing.Pool(cores) as p:
     # seqs = [x.sequence for x in fasta_1.reads(True, dtype=str)]
-    p = multiprocessing.Pool(cores)
     # a = [x for x in p.imap_unordered(partial(try_repair, phred_score=None, desired_length=160),
     #                                 iterable=seqs,
     #                                 chunksize=math.floor(len(seqs) / (cores * 2)))]
@@ -405,8 +458,9 @@ def main(desired_length=160):
         fqr_1 = dinopy.FastaReader(input_file)
         seqs: typing.List[typing.List] = [[read.name, read.sequence, repair_quality_score] for read in
                                           fqr_1.reads(True)]
-
-    a = [x for x in p.imap_unordered(partial(try_repair, desired_length=desired_length),
+    pbar = tqdm(total=len(seqs))
+    p = multiprocessing.Pool(cores)
+    a = [x for x in p.imap_unordered(partial(try_repair, desired_length=desired_length, update_pbar=True),
                                      iterable=seqs,
                                      chunksize=math.ceil(len(seqs) / (cores * 10)))]
     # a = [x for x in map(partial(try_repair, desired_length=160), seqs)]
@@ -438,7 +492,7 @@ def main(desired_length=160):
     out_path = input_file.replace(".fastq", "_constraint_repaired.fastq").replace(".fasta",
                                                                                   "_constraint_repaired.fastq")
     if os.path.exists(out_path):
-        renamed_file = out_path.replace(".fastq", "_old.fastq")
+        renamed_file = out_path.replace(".fastq", "_old.fastq").replace(".fasta", "_old.fasta")
         print(f"[WARNING] File already exists, renaming old file to: {renamed_file}")
         move(out_path, renamed_file)
     with dinopy.FastqWriter(out_path) as of:
@@ -455,9 +509,15 @@ def main(desired_length=160):
     print(len([x for x in a if x[4] < 100]), len(a))
 
 
-if __name__ == "__main__":
-    # TODO include a call to repair_cluster IF we have a clustered input file!
-    # only in the other cases we want to call default repair (main)
-    # main()
-    a = repair_clusters(160)
-    print(a)
+#if __name__ == "__main__":
+# call to repair_cluster IF we have a clustered input file!
+# only in the other cases we want to call default repair (main)
+if (snakemake.input.cent is not None and snakemake.input.cent != ""):
+    #a = \
+    repair_clusters(length)
+    #print(a)
+else:
+    main()
+# TODO store the result in a json file and in a fastq file (for the correct, swapped and repaired sequences +
+#  corrupt)
+

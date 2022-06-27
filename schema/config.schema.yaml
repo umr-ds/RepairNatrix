@@ -111,6 +111,30 @@ constraint_filtering:
     default: false
     description: "filter after assembly"
     type: boolean
+  inplace_repair:
+    default: false
+    description: "if set: invalid sequences will be replaced with the repaired ones, if not set: append original sequences"
+    type: boolean
+  maximum_repair_cycles:
+    default: 100
+    description: "maximum number of single base-repairs per sequence before a sequence will be treated as FAILED"
+    type: int
+  repair_quality_score:
+    default: 33
+    description: "phread quality score to set after a repair"
+    type: int
+  repair_after_demultiplexing:
+    default: false
+    description: "repair after demultiplexing"
+    type: boolean
+  repair_after_quality_control:
+    default: false
+    description: "repair after quality control"
+    type: boolean
+  repair_after_assembly:
+    default: false
+    description: "repair after assembly"
+    type: boolean
   homopolymer:
     count:
       default: 5
