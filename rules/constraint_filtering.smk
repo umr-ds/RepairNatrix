@@ -20,6 +20,7 @@ rule constraint_repair_base:
             maximum_repair_cycles=config["constraint_filtering"]["maximum_repair_cycles"],
             inplace_repair=config["constraint_filtering"]["inplace_repair"],
             repair_quality_score=config["constraint_filtering"]["repair_quality_score"],
+            use_quality_mapping = config["constraint_filtering"]["use_quality_mapping"],
             sequence_length=config["constraint_filtering"]["sequence_length"],
             min_gc_content=config["constraint_filtering"]["overall_gc_content"]["gc_min"],
             max_gc_content=config["constraint_filtering"]["overall_gc_content"]["gc_max"],
@@ -35,7 +36,7 @@ rule constraint_repair_base:
         script:
             "../scripts/constraints/check_constraints.py"
 
-if (config['constraint_filtering']['after_demultiplexing']):
+if config['constraint_filtering']['after_demultiplexing']:
     use rule constraint_filtering_base as constraint_filtering_1 with:
         input:
             expand("demultiplexed/{{sample}}_{{unit}}_{read}{repaired}.fastq",read=reads, repaired=CONSTRAINT_REPAIRED_1),
@@ -47,7 +48,7 @@ if (config['constraint_filtering']['after_demultiplexing']):
             temp(expand("demultiplexed/{{sample}}_{{unit}}_{read}{repaired}{filtered}.fastq",read=reads,filtered=CONSTRAINT_FILTER_1,repaired=CONSTRAINT_REPAIRED_2)),
             temp(expand("demultiplexed/{{sample}}_{{unit}}_{read}{repaired}{filtered}_out.fastq",read=reads,filtered=CONSTRAINT_FILTER_1,repaired=CONSTRAINT_REPAIRED_2))
 
-if (config['constraint_filtering']['after_quality_control']):
+if config['constraint_filtering']['after_quality_control']:
     use rule constraint_filtering_base as constraint_filtering_2 with:
         input:
             expand("results/assembly/{{sample}}_{{unit}}/{{sample}}_{{unit}}_{read}{repaired}.fastq",read=reads,repaired=CONSTRAINT_REPAIRED_2),
@@ -59,7 +60,7 @@ if (config['constraint_filtering']['after_quality_control']):
             expand("results/assembly/{{sample}}_{{unit}}/{{sample}}_{{unit}}_{read}{repaired}{filtered}.fastq",read=reads,filtered=CONSTRAINT_FILTER_2,repaired=CONSTRAINT_REPAIRED_2),
             expand("results/assembly/{{sample}}_{{unit}}/{{sample}}_{{unit}}_{read}{repaired}{filtered}_out.fastq",read=reads,filtered=CONSTRAINT_FILTER_2,repaired=CONSTRAINT_REPAIRED_2)
 
-if (config['constraint_filtering']['after_assembly']):
+if config['constraint_filtering']['after_assembly']:
     use rule constraint_filtering_base as constraint_filtering_3 with:
         input:
             expand("results/assembly/{{sample}}_{{unit}}/{{sample}}_{{unit}}_assembled{repaired}.fastq",repaired=CONSTRAINT_REPAIRED_3),
@@ -76,7 +77,7 @@ if (config['constraint_filtering']['after_assembly']):
             sequence_length=0,
             paired=False
 
-if (config['constraint_filtering']['repair_after_demultiplexing']):
+if config['constraint_filtering']['repair_after_demultiplexing']:
     use rule constraint_repair_base as constraint_repair_1 with:
         input:
             expand("demultiplexed/{{sample}}_{{unit}}_{read}.fastq",read=reads),
@@ -90,7 +91,7 @@ if (config['constraint_filtering']['repair_after_demultiplexing']):
             #"results/assembly/{sample}_{unit}/{sample}_{unit}_derep_repair_mapping.json"  # mapping repaired reads to original reads
 
 
-if (config['constraint_filtering']['repair_after_quality_control']):
+if config['constraint_filtering']['repair_after_quality_control']:
     use rule constraint_repair_base as constraint_repair_2 with:
         input:
             expand("results/assembly/{{sample}}_{{unit}}/{{sample}}_{{unit}}_{read}.fastq",read=reads),
@@ -101,7 +102,7 @@ if (config['constraint_filtering']['repair_after_quality_control']):
             expand("results/assembly/{{sample}}_{{unit}}/{{sample}}_{{unit}}_{read}{repaired}_mapping.json", read=reads, repaired=CONSTRAINT_REPAIRED_2),
 
 
-if (config['constraint_filtering']['repair_after_assembly']):
+if config['constraint_filtering']['repair_after_assembly']:
     #TODO: in this case we want to no only repair invalid centroids but ideally we would want to select:
     # the best representative of the cluster
     # with "best" being: 1) the smallest distance to the current centroid and 2) fulfilling all constraints

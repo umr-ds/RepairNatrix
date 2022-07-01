@@ -55,6 +55,8 @@ try:
     undesired_subsequences_file = snakemake.params.subsequences_file
     length = snakemake.params.sequence_length
     MAX_ITERATIONS = snakemake.params.maximum_repair_cycles
+    USE_QUALITY_MAPPING = snakemake.params.use_quality_mapping
+    snakemake_input_file_zero = snakemake.input[0]
 except NameError as ne:
     logging.basicConfig(level=logging.DEBUG)
     logging.warning("No snakemake detected. Using default values for parameters.")
@@ -69,8 +71,38 @@ except NameError as ne:
     length = 160
     undesired_subsequences_file = "undesired_subsequences.txt"
     MAX_ITERATIONS = 50
+    USE_QUALITY_MAPPING = True
+    snakemake_input_file_zero = "../../results/assembly/MOSLA3_A/MOSLA3_A_assembled.fastq"
 
+logging.info(f"Repairing file: {snakemake_input_file_zero} {'using in-place repair' if inplace_repair else 'adding repaired sequences.'}")
 undesired_subsequences_finder = UndesiredSubSequenceFinder(undesired_subsequences_file)
+
+# create quality mapping dict to speedup potential dereplication and repair cycles
+quality_mapping_file = snakemake_input_file_zero.replace("_assembled.fastq", "derep.fastq")
+quality_mapping_dict = dict()
+
+if USE_QUALITY_MAPPING:
+    #  - if derep quality mode:
+    #       find instances of elem in "results/assembly/{sample}_{unit}/{sample}_{unit}_derep.fastq"
+    #       and take the quality from it!
+    #  - else (derep frequency mode:
+    #       find all instances of elem in ..._assembly.fastq and take the min, max, average quality from it!
+    if not os.path.exists(quality_mapping_file):
+        # we do NOT have a dereplicated fastq file, thus we have to extract this info from the assembly file
+        quality_mapping_file = snakemake_input_file_zero
+        #with open(quality_mapping_file) as q_mapping_fp:
+        quality_mapping_reads = dinopy.FastqReader(quality_mapping_file).reads(True, True, False, str)
+        for read in quality_mapping_reads:
+            if read.sequence not in quality_mapping_dict.keys() \
+                    or min(quality_mapping_dict[read.sequence]) < min(read.quality) \
+                    or np.average([ int(x) for x in quality_mapping_dict[read.sequence]]) < np.average([int(x) for x in read.quality]):
+                quality_mapping_dict[read.sequence] = read.quality
+    else:
+        #with open(quality_mapping_file) as q_mapping_fp:
+        quality_mapping_reads = dinopy.FastqReader(quality_mapping_file).reads()
+        # file is already dereplicated
+        for read in quality_mapping_reads:
+            quality_mapping_dict[read.sequence] = read.quality
 
 """ 
 idea:
@@ -88,7 +120,7 @@ def repair_single_cluster(single_cluster_data, desired_length=160):
     res = [sum(x) for x in zip(*all_violations)]
     if sum(res) == 0 and len(res) == desired_length:
         # there was no error in the centroid. OPTIONAL: mark as correct
-        return "C", centroid # Centeroid was Correct
+        return "C", centroid  # Centeroid was Correct
         # continue
     else:
         # there was an error in the centroid: iterate over the cluster
@@ -98,7 +130,7 @@ def repair_single_cluster(single_cluster_data, desired_length=160):
             seq_violations = calc_errors(seq)
             res = [sum(x) for x in zip(*seq_violations)]
             if sum(res) == 0 and len(res) == desired_length:
-                return "S_C", seq # Centeroid was substituted - new centeroid is correct - no repair was needed!
+                return "S_C", seq  # Centeroid was substituted - new centeroid is correct - no repair was needed!
             # else:
             # the sequence does not fulfill all constraints
             # continue
@@ -108,7 +140,8 @@ def repair_single_cluster(single_cluster_data, desired_length=160):
             possible_results = []
             pair_with_quality = namedtuple("cluster_repair", ["name", "seq", "quality"])
             for i, elem in enumerate([centroid] + cluster):
-                repair_res = try_repair(pair_with_quality(f"cluster_repair_{i}", elem, repair_quality_score), desired_length)
+                q_score = quality_mapping_dict.get(elem.upper(), repair_quality_score)
+                repair_res = try_repair(pair_with_quality(f"cluster_repair_{i}", elem, q_score), desired_length)
                 repair_violations = calc_errors(repair_res[1])
                 res = [sum(x) for x in zip(*repair_violations)]
                 if sum(res) == 0 and len(res) == desired_length:
@@ -122,6 +155,7 @@ def repair_single_cluster(single_cluster_data, desired_length=160):
                 return sorted(possible_results, key=lambda x: x[0])[0][1]
         return "F", centroid
 
+
 def repair_clusters(desired_length):
     """
     clusters: list of Clusters, each cluster has a centroid and a list of sequences
@@ -130,22 +164,20 @@ def repair_clusters(desired_length):
     desired_length: int, desired length of the sequences in the clusters
     :returns: list of centroids with a quality score indicating the performed repairs together with the initial quality
     """
-    # TODO: require "finished.clusters" file existing!
     global pbar
     try:
-        input_file = snakemake.input.cent # centeroid file...
+        input_file = snakemake.input.cent  # centeroid file...
     except NameError:
         logging.info("Running in non-snakemake mode - this should be used for testing only")
-        input_file = "../../results/assembly/MOSLA12_A/MOSLA12_A_assembled.fastq"
+        input_file = snakemake_input_file_zero
         # input_file = "/home/michael/Code/RepairNatrix/results/assembly/MOSLA2_A/MOSLA2_A_cluster.fasta"
-    logging.info(f"Input files: {input_file}")
+    logging.info(f"Parsing cluster for input file: {input_file}")
 
     # use dinopy to load all clust* files (fasta) + sort the clusters by size
     clusters = []
 
     # get folder for a file string:
     input_folder = os.path.dirname(input_file)
-    logging.info(f"Input folder: {input_folder}")
     for cluster_file in glob.glob(f"{input_folder}/clust*"):
         #logging.info("Processing file: " + cluster_file)
         cluster = [read.sequence.decode() for read in dinopy.FastaReader(cluster_file).reads(True)]
@@ -168,23 +200,23 @@ def repair_clusters(desired_length):
                                                  chunksize=math.ceil(len(clusters) / (cores * 10)))]
     if not inplace_repair:
         # read all entries of input_file (containing all initial centeroids
-        initial_centeroids = dinopy.FastaReader(input_file)
+        initial_centeroids = dinopy.FastqReader(input_file)
         res_seqs = set([b for a,b in res_centroids])
         # add original centeroid to
-        for org_centeroid_tuple in initial_centeroids.entries():
+        for org_centeroid_tuple in initial_centeroids.reads(True, False, False):
             if org_centeroid_tuple.sequence not in res_seqs:
-                res_centroids.append((org_centeroid_tuple.sequence, "O_F_" + org_centeroid_tuple.name))
-                initial_centeroids += org_centeroid_tuple.sequence
+                res_centroids.append((org_centeroid_tuple.sequence, "O_F_" + org_centeroid_tuple.name.decode()))
+                # initial_centeroids += org_centeroid_tuple.sequence
 
     if os.path.exists(output_file):
         renamed_file = output_file.replace(".fasta", "_old.fasta")
-        print(f"[WARNING] File already exists, renaming old file to: {renamed_file}")
+        logging.warn(f"[WARNING] File already exists, renaming old file to: {renamed_file}")
         move(output_file, renamed_file)
     with dinopy.FastaWriter(output_file) as out_file:
-        out_file.write_entries([(b, a.encode("utf-8")) for a, b in sorted(res_centroids, key=lambda tpl: sort_results(tpl[0]))], dtype=str)
+        out_file.write_entries([(b, (a.encode("utf-8") if isinstance(a, str) else a)) for a, b in sorted(res_centroids, key=lambda tpl: sort_results(tpl[0]))], dtype=str)
     if os.path.exists(output_cluster_mapping_file):
         renamed_file = output_cluster_mapping_file.replace(".json", "_old.json")
-        print(f"[WARNING] File already exists, renaming old file to: {renamed_file}")
+        logging.warn(f"[WARNING] File already exists, renaming old file to: {renamed_file}")
         move(output_cluster_mapping_file, renamed_file)
     with open(output_cluster_mapping_file, "w") as cluster_output:
         json.dump([x for x in zip([b for a, b in res_centroids], clusters)], fp=cluster_output)
@@ -192,7 +224,15 @@ def repair_clusters(desired_length):
     #  but also all other elements per cluster with their quality
     return res_centroids
 
+
 def sort_results(in_str):
+    if in_str is None:
+        return MAX_ITERATIONS + 5000
+    try:
+        # ensure we have str and not bytes
+        in_str = in_str.decode()
+    except:
+        pass
     if in_str == "C":  # centeroid was correct
         return -1000
     elif in_str == "S_C":  # centeroid was substituted from cluster, new centeroid correct
@@ -203,6 +243,9 @@ def sort_results(in_str):
         return MAX_ITERATIONS + 1000
     elif in_str.startswith("O_F"):  # in case of INPLACE_REPAIR = False, we want to flag invalid original seqs as failed
         return MAX_ITERATIONS + 100
+    else:
+        logging.error(f"sorting found not handled case: {in_str}")
+        return MAX_ITERATIONS
 
 
 def allmax(a, return_index=True):
@@ -424,7 +467,7 @@ def main(desired_length=160):
         input_file = snakemake.input[0]
     except NameError:
         logging.info("Running in non-snakemake mode - this should be used for testing only")
-        input_file = "../../results/assembly/MOSLA12_A/MOSLA12_A_assembled.fastq"
+        input_file = snakemake_input_file_zero
         # input_file = "/home/michael/Code/RepairNatrix/results/assembly/MOSLA2_A/MOSLA2_A_cluster.fasta"
     logging.info(f"Input files: {input_file}")
     # fasta_1 = dinopy.FastaReader(input_file)
@@ -493,31 +536,32 @@ def main(desired_length=160):
                                                                                   "_constraint_repaired.fastq")
     if os.path.exists(out_path):
         renamed_file = out_path.replace(".fastq", "_old.fastq").replace(".fasta", "_old.fasta")
-        print(f"[WARNING] File already exists, renaming old file to: {renamed_file}")
+        logging.warn(f"[WARNING] File already exists, renaming old file to: {renamed_file}")
         move(out_path, renamed_file)
     with dinopy.FastqWriter(out_path) as of:
         of.write_reads(out_data)  # , dtype=str
+    logging.info(f"Saving result: {out_path}")
 
     out_path = input_file.replace(".fastq", "_constraint_repaired_mapping.json").replace(".fasta",
                                                                                          "_constraint_repaired_mapping.json")
     if os.path.exists(out_path):
         renamed_file = out_path.replace(".json", "_old.json")
-        print(f"[WARNING] File already exists, renaming old file to: {renamed_file}")
+        logging.warn(f"[WARNING] File already exists, renaming old file to: {renamed_file}")
         move(out_path, renamed_file)
     with open(out_path, "w") as f:
         json.dump(repaired_tuples, f)
-    print(len([x for x in a if x[4] < 100]), len(a))
-
+    # print(len([x for x in a if x[4] < 100]), len(a))
+    logging.info(f"Saving result-mapping for alternative centeroid selection during decoding: {out_path}")
 
 #if __name__ == "__main__":
 # call to repair_cluster IF we have a clustered input file!
 # only in the other cases we want to call default repair (main)
-if (snakemake.input.cent is not None and snakemake.input.cent != ""):
+#if (snakemake.input.cent is not None and snakemake.input.cent != ""):
     #a = \
-    repair_clusters(length)
+repair_clusters(length)
     #print(a)
-else:
-    main()
+#else:
+#    main()
 # TODO store the result in a json file and in a fastq file (for the correct, swapped and repaired sequences +
 #  corrupt)
 

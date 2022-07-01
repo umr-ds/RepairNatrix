@@ -15,10 +15,12 @@ constraint_filtering:
   - undesired_subsequences
   - windowed_gc_content
   inplace_repair: false
+  maximum_repair_cycles: 100
   repair_quality_score: 33
-  repair_after_demultiplexing: true
+  repair_after_demultiplexing: false
   repair_after_quality_control: false
   repair_after_assembly: true
+  use_quality_mapping: true
   after_demultiplexing: false
   after_quality_control: false
   after_assembly: true

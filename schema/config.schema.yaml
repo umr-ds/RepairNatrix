@@ -115,6 +115,9 @@ constraint_filtering:
     default: false
     description: "if set: invalid sequences will be replaced with the repaired ones, if not set: append original sequences"
     type: boolean
+  use_quality_mapping:
+    default: true
+    description: "if set: repair process will lookup quality values for fasta entries based on the raw reads to improve reconstruction. this might take a long time!"
   maximum_repair_cycles:
     default: 100
     description: "maximum number of single base-repairs per sequence before a sequence will be treated as FAILED"
