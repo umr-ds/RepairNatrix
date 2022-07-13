@@ -6,7 +6,12 @@ import math
 import typing
 from collections import namedtuple
 
-import dinopy
+try:
+    # we add these imorts to make the IDE happy about "snakemake.*" not existing...
+    import failed_import, snakemake
+except:
+    pass
+
 import logging
 import multiprocessing
 from tqdm import tqdm
@@ -41,6 +46,98 @@ required config entries:
     
 """
 
+def quality_score_to_phred_error_prob(quality_score, quality_score_format="Illumina 1.8+"):
+    phred_offset = quality_score_format_dict[quality_score_format]
+    quality_score = quality_score - phred_offset
+    return 10 ** -(quality_score / 10)  # accuracy = 1 - quality_score_to_phred_error_prob(quality_score)
+
+
+def phred_error_prob_to_quality_score(phred_error_prob, quality_score_format="Illumina 1.8+"):
+    phred_offset = quality_score_format_dict[quality_score_format]
+    return -10 * np.log10(phred_error_prob) + phred_offset
+
+
+def read_fasta(filename: str) -> typing.Iterator:
+    """
+
+    :param filename:
+    :return: iterator of tuples: (name, seqeunce)
+    """
+    # todo: handle case that input-parameter is a filehandle!
+    fasta_dict = {}
+    with open(filename, 'r') as f:
+        for line in f:
+            if line.startswith('>'):
+                i = 0
+                seq_name = line.strip().split()[0][1:] + str(i)
+                while seq_name in fasta_dict:
+                    i += 1
+                    seq_name = line.strip().split()[0][1:] + str(i)
+                fasta_dict[seq_name] = ''
+            else:
+                fasta_dict[seq_name] += line.strip()
+    return iter(fasta_dict)
+
+
+def read_fastq(filename: str) -> typing.Iterator:
+    """
+
+    :param filename:
+    :return: iterator of tuples: (name, sequence, phread quality score)
+    """
+    fastq_list = []
+    last_line = -1
+    with open(filename, 'r') as f:
+        for j, line in enumerate(f):
+            if line.startswith('@'):
+                if last_line == 3:
+                    fastq_list.append((seq_name, dna_seq, comment_line, phred_score))
+                seq_name = line.strip()[1:]
+                last_line = 0
+            elif j % 4 == 1 and last_line == 0:
+                dna_seq = line.strip()
+                last_line = 1
+            elif line.startswith('+') and last_line == 1:
+                comment_line = line.strip()[1:]
+                last_line = 2
+            elif j % 4 == 3 and last_line == 2:
+                phred_score = line.strip()
+                last_line = 3
+        if last_line == 3:
+            fastq_list.append((seq_name, dna_seq, comment_line, phred_score))
+    return iter(fastq_list)
+
+
+def write_fasta(filename: str, data):
+    """
+    : typing.Union[
+    typing.List[typing.Tuple[str, str]], typing.Iterable[typing.NamedTuple[typing.Union[str, bytes], str]]]
+    :param filename:
+    :param data: data in the format: List(Tuple(name, sequence))
+    :return:
+    """
+    # todo handle "filename" being the a filedescriptor
+    with open(filename, "w") as fp:
+        for elem in data[:-1]:
+            fp.write(f">{elem[0]}\n{elem[1]}\n")
+        fp.write(f">{data[-1][0]}\n{data[-1][1]}")
+
+
+def write_fastq(filename: str, data: typing.Union[
+    typing.List[typing.Tuple[str, str, str]], typing.Tuple[typing.Union[str, bytes], str, str]]):
+    """
+    , typing.NamedTuple[str, str, str]
+    :param filename:
+    :param data:
+    :return:
+    """
+    # todo handle "filename" being the a filedescriptor
+    with open(filename, "w") as fp:
+        for elem in data[:-1]:
+            fp.write(f">{elem[0]}\n{elem[1]}\n{elem[2]}\n{elem[3]}\n")
+        fp.write(f">{elem[0]}\n{elem[1]}\n{elem[2]}\n{elem[3]}")
+
+
 try:
     logging.basicConfig(filename=str(snakemake.log),
                         level=logging.DEBUG)
@@ -72,7 +169,7 @@ except NameError as ne:
     undesired_subsequences_file = "undesired_subsequences.txt"
     MAX_ITERATIONS = 50
     USE_QUALITY_MAPPING = True
-    snakemake_input_file_zero = "../../results/assembly/MOSLA3_A/MOSLA3_A_assembled.fastq"
+    snakemake_input_file_zero = "../../results/assembly/MOSLA6_A/MOSLA6_A_assembled.fastq"
 
 logging.info(f"Repairing file: {snakemake_input_file_zero} {'using in-place repair' if inplace_repair else 'adding repaired sequences.'}")
 undesired_subsequences_finder = UndesiredSubSequenceFinder(undesired_subsequences_file)
@@ -90,19 +187,20 @@ if USE_QUALITY_MAPPING:
     if not os.path.exists(quality_mapping_file):
         # we do NOT have a dereplicated fastq file, thus we have to extract this info from the assembly file
         quality_mapping_file = snakemake_input_file_zero
-        #with open(quality_mapping_file) as q_mapping_fp:
-        quality_mapping_reads = dinopy.FastqReader(quality_mapping_file).reads(True, True, False, str)
-        for read in quality_mapping_reads:
-            if read.sequence not in quality_mapping_dict.keys() \
-                    or min(quality_mapping_dict[read.sequence]) < min(read.quality) \
-                    or np.average([ int(x) for x in quality_mapping_dict[read.sequence]]) < np.average([int(x) for x in read.quality]):
-                quality_mapping_dict[read.sequence] = read.quality
+        # quality_mapping_reads = dinopy.FastqReader(quality_mapping_file).reads(True, True, False, str)
+        quality_mapping_reads = read_fastq(quality_mapping_file)
+        for name, sequence, comment, quality  in quality_mapping_reads:
+            if sequence not in quality_mapping_dict.keys() \
+                    or min(quality_mapping_dict[sequence]) < min(quality) \
+                    or np.average([ int(quality_score_to_phred_error_prob(ord(x))) for x in quality_mapping_dict[sequence]]) \
+                    < np.average([int(quality_score_to_phred_error_prob(ord(x))) for x in quality]):
+                quality_mapping_dict[sequence] = quality
     else:
-        #with open(quality_mapping_file) as q_mapping_fp:
-        quality_mapping_reads = dinopy.FastqReader(quality_mapping_file).reads()
+        # quality_mapping_reads = dinopy.FastqReader(quality_mapping_file).reads()
+        quality_mapping_reads = read_fastq(quality_mapping_file)
         # file is already dereplicated
-        for read in quality_mapping_reads:
-            quality_mapping_dict[read.sequence] = read.quality
+        for name, sequence, comment, quality in quality_mapping_reads:
+            quality_mapping_dict[sequence] = quality
 
 """ 
 idea:
@@ -130,6 +228,9 @@ def repair_single_cluster(single_cluster_data, desired_length=160):
             seq_violations = calc_errors(seq)
             res = [sum(x) for x in zip(*seq_violations)]
             if sum(res) == 0 and len(res) == desired_length:
+                # TODO: test all elements in cluster and choose the one with the lowest number of changes compared
+                #  to the original centroid
+                # TODO: OR check if the centroid files are ordered by distance, in that case this code is correct!
                 return "S_C", seq  # Centeroid was substituted - new centeroid is correct - no repair was needed!
             # else:
             # the sequence does not fulfill all constraints
@@ -151,6 +252,8 @@ def repair_single_cluster(single_cluster_data, desired_length=160):
                     possible_results.append((repair_res[4], (f"S_R_C_{repair_res[4]}", repair_res[1])))
                 else:
                     continue
+            # TODO: if there are multiple seqeunces that were repaired, choose the one with the lowest number of changes
+            # AND with the lowest distance to the original centroid
             if len(possible_results) > 0:
                 return sorted(possible_results, key=lambda x: x[0])[0][1]
         return "F", centroid
@@ -180,40 +283,45 @@ def repair_clusters(desired_length):
     input_folder = os.path.dirname(input_file)
     for cluster_file in glob.glob(f"{input_folder}/clust*"):
         #logging.info("Processing file: " + cluster_file)
-        cluster = [read.sequence.decode() for read in dinopy.FastaReader(cluster_file).reads(True)]
+        # cluster = [read.sequence.decode() for read in dinopy.FastaReader(cluster_file).reads(True)]
+        cluster = [seq for seq in read_fasta(cluster_file)]
         clusters.append((cluster[0], cluster[1:]))
     clusters = sorted(clusters, key=lambda x: len(x[1]), reverse=True)
     output_file = input_file.replace("cluster.fasta", "assembled_constraint_repaired.fasta")
     output_cluster_mapping_file = input_file.replace("cluster.fasta", "assembled_constraint_repaired_clusters.json")
-    # TODO: run different repairs based on the input-file:
+    # run different repairs based on the input-file:
     # if we have a list of clusters(+centroids) we want to run a special repair for each cluster:
+    # - if the centroid does fulfill all constraints: return centroid as correct
     # - if the centroid does not fulfill all constraints:
     #     - search in the cluster for the sequence that is closest to the centroid and fulfills all constraints
     #     - if no such sequence exists:
-    #         - either: repair only the centroid
-    #         - or: repair _ALL_ sequences in the cluster and choose the one with the least changes
-    #         _and_ the shortest distance to the centroid
+    #         - first: repair only the centroid
+    #         - if this fails after CHANGE_LIMIT changes:
+    #           - repair _ALL_ sequences in the cluster and choose the one with the least changes
+    #             _AND_ the shortest distance to the centroid
     # res_centroids = []
     pbar = tqdm(total=len(clusters))
     p = multiprocessing.Pool(cores)
     res_centroids = [x for x in p.imap_unordered(partial(repair_single_cluster, desired_length=desired_length), iterable=clusters,
                                                  chunksize=math.ceil(len(clusters) / (cores * 10)))]
     if not inplace_repair:
-        # read all entries of input_file (containing all initial centeroids
-        initial_centeroids = dinopy.FastqReader(input_file)
+        # read all entries of input_file (containing all initial centroids)
+        # initial_centroids = dinopy.FastqReader(input_file)
         res_seqs = set([b for a,b in res_centroids])
         # add original centeroid to
-        for org_centeroid_tuple in initial_centeroids.reads(True, False, False):
-            if org_centeroid_tuple.sequence not in res_seqs:
-                res_centroids.append((org_centeroid_tuple.sequence, "O_F_" + org_centeroid_tuple.name.decode()))
+        print(f"{input_file}")
+        for name, sequnece, comment, quality in read_fastq(input_file):
+            if sequence not in res_seqs:
+                res_centroids.append(("O_F_" + name, sequnece))
                 # initial_centeroids += org_centeroid_tuple.sequence
 
     if os.path.exists(output_file):
-        renamed_file = output_file.replace(".fasta", "_old.fasta")
-        logging.warn(f"[WARNING] File already exists, renaming old file to: {renamed_file}")
+        renamed_file = output_file.replace(".fastq", ".fasta").replace(".fasta", "_old.fasta")
+        logging.warning(f"[WARNING] File already exists, renaming old file to: {renamed_file}")
         move(output_file, renamed_file)
-    with dinopy.FastaWriter(output_file) as out_file:
-        out_file.write_entries([(b, (a.encode("utf-8") if isinstance(a, str) else a)) for a, b in sorted(res_centroids, key=lambda tpl: sort_results(tpl[0]))], dtype=str)
+    #with dinopy.FastaWriter(output_file) as out_file:
+    #    out_file.write_entries([(a, str(i) + "_" + (b.encode("utf-8") if isinstance(b, str) else b)) for i, a, b in enumerate(sorted(res_centroids, key=lambda tpl: sort_results(tpl[0])))], dtype=str)
+    write_fasta(output_file, [(str(i) + "_" + (a.encode("utf-8") if isinstance(a, str) else a), b) for i, a, b in enumerate(sorted(res_centroids, key=lambda tpl: sort_results(tpl[0])))])
     if os.path.exists(output_cluster_mapping_file):
         renamed_file = output_cluster_mapping_file.replace(".json", "_old.json")
         logging.warn(f"[WARNING] File already exists, renaming old file to: {renamed_file}")
@@ -433,24 +541,12 @@ def try_repair(seq_instance: typing.NamedTuple, desired_length, update_pbar=Fals
         seq = min_seq
         if DEBUG: print(f"[M] {seq}")
         iterations += 1
-    return (org_seq, seq, phred_score, seq_instance[0], no_changes)
+    return org_seq, seq, phred_score, seq_instance[0], no_changes
 
 
 # def repair_all_n_chars(seq):
 #    # TO+DO: try to repair each "N" in the current sequence and set the quality to a low value (unless only one option is available)
 #    pass
-
-
-def quality_score_to_phred_error_prob(quality_score, quality_score_format="Illumina 1.8+"):
-    phred_offset = quality_score_format_dict[quality_score_format]
-    quality_score = quality_score - phred_offset
-    return 10 ** -(quality_score / 10)  # accurecy = 1 - quality_score_to_phred_error_prob(quality_score)
-
-
-def phred_error_prob_to_quality_score(phred_error_prob, quality_score_format="Illumina 1.8+"):
-    phred_offset = quality_score_format_dict[quality_score_format]
-    return -10 * np.log10(phred_error_prob) + phred_offset
-
 
 # - try repair without brute force
 #   -> create constraint combinations
@@ -468,21 +564,7 @@ def main(desired_length=160):
     except NameError:
         logging.info("Running in non-snakemake mode - this should be used for testing only")
         input_file = snakemake_input_file_zero
-        # input_file = "/home/michael/Code/RepairNatrix/results/assembly/MOSLA2_A/MOSLA2_A_cluster.fasta"
     logging.info(f"Input files: {input_file}")
-    # fasta_1 = dinopy.FastaReader(input_file)
-    # print(try_repair(
-    #    "GGATTGAGCAGCTGTCTATAGTACGTACTTTCAGATATTGCGATAAGCGTGTTGACCAAAACTTGCTGACGCATCGAGGAAAGATGTACTTCTTGGGGTCAGAGGGCTACCCTGATAGTTTTACGCAAGATCTCTCCGACGTCTGGTAATATTTTGCCGATGCAAAGTGATCTCAAGGCAGCGCACCCGCACTGCTGGTACGCCGATCAGAATGAGACTGACCGATACAGTGTTAAGCGAGTGAC",
-    #    None, 160))
-    # a = [try_repair(x.sequence, None, 160) for x in fasta_1.reads(True, str)]
-
-    # with multiprocessing.Pool(cores) as p:
-    # seqs = [x.sequence for x in fasta_1.reads(True, dtype=str)]
-    # a = [x for x in p.imap_unordered(partial(try_repair, phred_score=None, desired_length=160),
-    #                                 iterable=seqs,
-    #                                 chunksize=math.floor(len(seqs) / (cores * 2)))]
-    # print(a)
-    # a = [x for x in map(partial(try_repair, phred_score=None, desired_length=160), seqs)]
 
     # possible repair: after assembly
     """
@@ -494,13 +576,16 @@ def main(desired_length=160):
     # better: possible repair: after dereplication
 
     if input_file.endswith(".fastq"):
-        fqr_1 = dinopy.FastqReader(input_file)
-        seqs: typing.List[typing.List] = [[read.name, read.sequence, read.quality] for read in fqr_1.reads()]
+        # fqr_1 = dinopy.FastqReader(input_file)
+        # seqs: typing.List[typing.List] = [[read.name, read.sequence, read.quality] for read in fqr_1.reads()]
+        seqs: typing.List[typing.List] = [[name, sequence, quality] for name, sequence, comment, quality in read_fastq(input_file)]
     else:
         logging.info("Fasta-File - No phred score given. Using default value.")
-        fqr_1 = dinopy.FastaReader(input_file)
-        seqs: typing.List[typing.List] = [[read.name, read.sequence, repair_quality_score] for read in
-                                          fqr_1.reads(True)]
+        # fqr_1 = dinopy.FastaReader(input_file)
+        # seqs: typing.List[typing.List] = [[read.name, read.sequence, repair_quality_score] for read in
+        #                                   fqr_1.reads(True)]
+        seqs: typing.List[typing.List] = [[name, sequence, repair_quality_score] for name, sequence in
+                                          read_fasta(input_file)]
     pbar = tqdm(total=len(seqs))
     p = multiprocessing.Pool(cores)
     a = [x for x in p.imap_unordered(partial(try_repair, desired_length=desired_length, update_pbar=True),
@@ -513,12 +598,11 @@ def main(desired_length=160):
             seq_name = seq[0].decode() + "_org"
             if "quality" not in seq or seq[2] is None:
                 # we might be in a FASTA-File and thus have no access to the quality scores
-                phred_score = [int(phred_error_prob_to_quality_score(
-                    quality_score_to_phred_error_prob(repair_quality_score)))] * len(seq[1])
+                phred_score = [int(repair_quality_score)] * len(seq[1])
             else:
-                phred_score = [int(phred_error_prob_to_quality_score(quality_score_to_phred_error_prob(x))) for x in
+                phred_score = [int(x) for x in
                                seq[2]]
-            out_data.append((seq[1], seq_name.encode("utf-8"), bytes(phred_score)))
+            out_data.append((seq[1], seq_name.encode(), chr(int(phred_score))))
     for elem in sorted(a, key=lambda x: x[-1]):
         # store result as a fastq file to reflect
         bytes_quality_values = bytes(
@@ -531,15 +615,16 @@ def main(desired_length=160):
             res = elem[1].decode("utf-8")
         except AttributeError:  # support for non-snakemake runs
             res = elem[1]
-        out_data.append((res.encode("utf-8"), seq_name.encode("utf-8"), bytes_quality_values))
+        out_data.append((res.encode("utf-8"), seq_name.encode(), bytes_quality_values))
     out_path = input_file.replace(".fastq", "_constraint_repaired.fastq").replace(".fasta",
                                                                                   "_constraint_repaired.fastq")
     if os.path.exists(out_path):
         renamed_file = out_path.replace(".fastq", "_old.fastq").replace(".fasta", "_old.fasta")
-        logging.warn(f"[WARNING] File already exists, renaming old file to: {renamed_file}")
+        logging.warning(f"[WARNING] File already exists, renaming old file to: {renamed_file}")
         move(out_path, renamed_file)
-    with dinopy.FastqWriter(out_path) as of:
-        of.write_reads(out_data)  # , dtype=str
+    # with dinopy.FastqWriter(out_path) as of:
+    #     of.write_reads(out_data, True)  # , dtype=str
+    write_fastq(out_path, out_data)
     logging.info(f"Saving result: {out_path}")
 
     out_path = input_file.replace(".fastq", "_constraint_repaired_mapping.json").replace(".fasta",
