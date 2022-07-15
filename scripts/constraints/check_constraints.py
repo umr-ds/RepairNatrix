@@ -57,7 +57,7 @@ def phred_error_prob_to_quality_score(phred_error_prob, quality_score_format="Il
     return -10 * np.log10(phred_error_prob) + phred_offset
 
 
-def read_fasta(filename: str) -> typing.Iterator:
+def read_fasta(filename: str) -> typing.Dict:
     """
 
     :param filename:
@@ -76,7 +76,7 @@ def read_fasta(filename: str) -> typing.Iterator:
                 fasta_dict[seq_name] = ''
             else:
                 fasta_dict[seq_name] += line.strip()
-    return iter(fasta_dict)
+    return fasta_dict
 
 
 def read_fastq(filename: str) -> typing.Iterator:
@@ -169,7 +169,7 @@ except NameError as ne:
     undesired_subsequences_file = "undesired_subsequences.txt"
     MAX_ITERATIONS = 50
     USE_QUALITY_MAPPING = True
-    snakemake_input_file_zero = "../../results/assembly/MOSLA6_A/MOSLA6_A_assembled.fastq"
+    snakemake_input_file_zero = "../../results/assembly/MOSLA2_A/MOSLA2_A_cluster.fasta"  # results/assembly/MOSLA6_A/MOSLA6_A_assembled.fastq"
 
 logging.info(f"Repairing file: {snakemake_input_file_zero} {'using in-place repair' if inplace_repair else 'adding repaired sequences.'}")
 undesired_subsequences_finder = UndesiredSubSequenceFinder(undesired_subsequences_file)
@@ -284,7 +284,7 @@ def repair_clusters(desired_length):
     for cluster_file in glob.glob(f"{input_folder}/clust*"):
         #logging.info("Processing file: " + cluster_file)
         # cluster = [read.sequence.decode() for read in dinopy.FastaReader(cluster_file).reads(True)]
-        cluster = [seq for seq in read_fasta(cluster_file)]
+        cluster = [seq for name, seq in read_fasta(cluster_file).items()]
         clusters.append((cluster[0], cluster[1:]))
     clusters = sorted(clusters, key=lambda x: len(x[1]), reverse=True)
     output_file = input_file.replace("cluster.fasta", "assembled_constraint_repaired.fasta")
@@ -310,21 +310,21 @@ def repair_clusters(desired_length):
         res_seqs = set([b for a,b in res_centroids])
         # add original centeroid to
         print(f"{input_file}")
-        for name, sequnece, comment, quality in read_fastq(input_file):
+        for name, sequence in read_fasta(input_file).items():
             if sequence not in res_seqs:
-                res_centroids.append(("O_F_" + name, sequnece))
+                res_centroids.append((f"{name}_O_F", sequence))
                 # initial_centeroids += org_centeroid_tuple.sequence
 
     if os.path.exists(output_file):
-        renamed_file = output_file.replace(".fastq", ".fasta").replace(".fasta", "_old.fasta")
+        renamed_file = output_file.replace(".fastq", "old_.fastq").replace(".fasta", "_old.fasta")
         logging.warning(f"[WARNING] File already exists, renaming old file to: {renamed_file}")
         move(output_file, renamed_file)
     #with dinopy.FastaWriter(output_file) as out_file:
     #    out_file.write_entries([(a, str(i) + "_" + (b.encode("utf-8") if isinstance(b, str) else b)) for i, a, b in enumerate(sorted(res_centroids, key=lambda tpl: sort_results(tpl[0])))], dtype=str)
-    write_fasta(output_file, [(str(i) + "_" + (a.encode("utf-8") if isinstance(a, str) else a), b) for i, a, b in enumerate(sorted(res_centroids, key=lambda tpl: sort_results(tpl[0])))])
+    write_fasta(output_file, [(str(i) + "_" + a, b) for i, (a, b) in enumerate(sorted(res_centroids, key=lambda tpl: sort_results(tpl[0])))])
     if os.path.exists(output_cluster_mapping_file):
         renamed_file = output_cluster_mapping_file.replace(".json", "_old.json")
-        logging.warn(f"[WARNING] File already exists, renaming old file to: {renamed_file}")
+        logging.warning(f"[WARNING] File already exists, renaming old file to: {renamed_file}")
         move(output_cluster_mapping_file, renamed_file)
     with open(output_cluster_mapping_file, "w") as cluster_output:
         json.dump([x for x in zip([b for a, b in res_centroids], clusters)], fp=cluster_output)
@@ -341,6 +341,9 @@ def sort_results(in_str):
         in_str = in_str.decode()
     except:
         pass
+    if ":" in in_str:
+        in_str = in_str.split(":")[-1]
+        in_str = in_str[in_str.find("_") + 1:]
     if in_str == "C":  # centeroid was correct
         return -1000
     elif in_str == "S_C":  # centeroid was substituted from cluster, new centeroid correct
@@ -585,7 +588,7 @@ def main(desired_length=160):
         # seqs: typing.List[typing.List] = [[read.name, read.sequence, repair_quality_score] for read in
         #                                   fqr_1.reads(True)]
         seqs: typing.List[typing.List] = [[name, sequence, repair_quality_score] for name, sequence in
-                                          read_fasta(input_file)]
+                                          read_fasta(input_file).items()]
     pbar = tqdm(total=len(seqs))
     p = multiprocessing.Pool(cores)
     a = [x for x in p.imap_unordered(partial(try_repair, desired_length=desired_length, update_pbar=True),
@@ -631,7 +634,7 @@ def main(desired_length=160):
                                                                                          "_constraint_repaired_mapping.json")
     if os.path.exists(out_path):
         renamed_file = out_path.replace(".json", "_old.json")
-        logging.warn(f"[WARNING] File already exists, renaming old file to: {renamed_file}")
+        logging.warning(f"[WARNING] File already exists, renaming old file to: {renamed_file}")
         move(out_path, renamed_file)
     with open(out_path, "w") as f:
         json.dump(repaired_tuples, f)
