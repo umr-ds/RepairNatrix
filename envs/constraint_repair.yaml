@@ -8,5 +8,6 @@ dependencies:
   - dinopy=2.0.3
   - regex
   - pip
+  - tqdm
   - pip:
       - -e ../../
