@@ -116,3 +116,14 @@ if config['constraint_filtering']['repair_after_assembly']:
             expand("results/assembly/{{sample}}_{{unit}}/{{sample}}_{{unit}}{repaired}_clusters.json", repaired=CONSTRAINT_REPAIRED_3),
             #"results/assembly/{sample}_{unit}/{sample}_{unit}_derep_repaired.fastq",# "repaired" bases will have a lower quality score (and will be APPENDED - or replace the original ones?)
             #"results/assembly/{sample}_{unit}/{sample}_{unit}_derep_repair_mapping.json"  # mapping repaired reads to original reads
+
+rule filtered_to_fasta:
+    input:
+        "results/assembly/{sample}_{unit}/{sample}_{unit}{RES_STR}.fastq"
+        #expand("results/assembly/{{sample}}_{{unit}}/{{sample}}_{{unit}}_{read}{repaired}{filtered}.fastq",read=reads ,repaired=CONSTRAINT_REPAIRED_2,filtered=CONSTRAINT_FILTER_2)
+    output:
+        "results/assembly/{sample}_{unit}/{sample}_{unit}{RES_STR}.fasta"
+    conda:
+        "../envs/seqtk.yaml"
+    shell:
+        "seqtk seq -a {input} > {output}"
