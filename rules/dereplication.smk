@@ -1,4 +1,16 @@
 if config["derep"]["centroid_selection"] == "frequency":
+    rule filtered_to_fasta:
+        input:
+            expand("results/assembly/{{sample}}_{{unit}}/{{sample}}_{{unit}}{repaired}{filtered}.fastq",repaired=CONSTRAINT_REPAIRED_3, filtered=CONSTRAINT_FILTER_3)#expand("results/assembly/{{sample}}_{{unit}}/{{sample}}_{{unit}}_assembled{filtered}.fastq",filtered=CONSTRAINT_FILTER_3)
+            #"results/assembly/{sample}_{unit}/{sample}_{unit}{RES_STR}.fastq"
+        #expand("results/assembly/{{sample}}_{{unit}}/{{sample}}_{{unit}}_{read}{repaired}{filtered}.fastq",read=reads ,repaired=CONSTRAINT_REPAIRED_2,filtered=CONSTRAINT_FILTER_2)
+        output:
+            "results/assembly/{sample}_{unit}/{sample}_{unit}.fasta"
+        conda:
+            "../envs/seqtk.yaml"
+        shell:
+            "seqtk seq -a {input} > {output}"
+
     rule vsearch_derep:
         input:
             "results/assembly/{sample}_{unit}/{sample}_{unit}.fasta"
@@ -11,7 +23,7 @@ if config["derep"]["centroid_selection"] == "frequency":
         log:
             "results/logs/{sample}_{unit}/vsearch_derep.log"
         shell:
-            "vsearch --derep_fulllength {input} --output {output} --log {log} --minuniquesize {minsize}"
+            "vsearch --derep_fulllength {input} --output {output} --log {log} --minuniquesize {params.minsize}"
 
     rule vsearch_cluster:
         input:
@@ -32,7 +44,7 @@ if config["derep"]["centroid_selection"] == "frequency":
 elif config["derep"]["centroid_selection"] == "quality":
     rule derep:
         input:
-            expand("results/assembly/{{sample}}_{{unit}}/{{sample}}_{{unit}}_assembled{filtered}.fastq",filtered=CONSTRAINT_FILTER_3)
+            expand("results/assembly/{{sample}}_{{unit}}/{{sample}}_{{unit}}{repaired}{filtered}.fastq",repaired=CONSTRAINT_REPAIRED_3, filtered=CONSTRAINT_FILTER_3)#expand("results/assembly/{{sample}}_{{unit}}/{{sample}}_{{unit}}_assembled{filtered}.fastq",filtered=CONSTRAINT_FILTER_3)
         output:
             "results/assembly/{sample}_{unit}/{sample}_{unit}_derep.fastq"
         conda:
