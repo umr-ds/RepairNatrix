@@ -26,11 +26,10 @@ CONSTRAINT_REPAIRED_3 = '_assembled_constraint_repaired' if config['constraint_f
 RES_STR = f"{CONSTRAINT_FILTER_1}{CONSTRAINT_FILTER_2}{CONSTRAINT_FILTER_3}{CONSTRAINT_REPAIRED_1}{CONSTRAINT_REPAIRED_2}{CONSTRAINT_REPAIRED_3}"
 rule all:
     input:
-        expand("results/assembly/{unit.sample}_{unit.unit}/{unit.sample}_{unit.unit}{res_str}.fasta",
-            unit=units.reset_index().itertuples(), res_str=RES_STR)
+        expand("results/assembly/{unit.sample}_{unit.unit}/{unit.sample}_{unit.unit}_fin.fasta", #{res_str}
+            unit=units.reset_index().itertuples()) #res_str=RES_STR
 
 ruleorder: assembly > prinseq
-ruleorder:
 
 include: "rules/demultiplexing.smk"
 include: "rules/read_assembly.smk"
