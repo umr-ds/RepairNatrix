@@ -4,6 +4,6 @@ channels:
   - conda-forge
   - defaults
 dependencies:
-  - spades
+  - spades=3.15.4
   - blast
   - tqdm

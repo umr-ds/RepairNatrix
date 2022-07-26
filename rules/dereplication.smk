@@ -1,7 +1,7 @@
 if config["derep"]["centroid_selection"] == "frequency":
     rule filtered_to_fasta:
         input:
-            expand("results/assembly/{{sample}}_{{unit}}/{{sample}}_{{unit}}{repaired}{filtered}.fastq",repaired=CONSTRAINT_REPAIRED_3, filtered=CONSTRAINT_FILTER_3)#expand("results/assembly/{{sample}}_{{unit}}/{{sample}}_{{unit}}_assembled{filtered}.fastq",filtered=CONSTRAINT_FILTER_3)
+            expand("results/assembly/{{sample}}_{{unit}}/{{sample}}_{{unit}}_assembled.fastq") if not config["constraint_filtering"]["after_assembly"] else expand("results/assembly/{{sample}}_{{unit}}/{{sample}}_{{unit}}{repaired}{filtered}.fastq",repaired=CONSTRAINT_REPAIRED_3, filtered=CONSTRAINT_FILTER_3)#expand("results/assembly/{{sample}}_{{unit}}/{{sample}}_{{unit}}_assembled{filtered}.fastq",filtered=CONSTRAINT_FILTER_3)
             #"results/assembly/{sample}_{unit}/{sample}_{unit}{RES_STR}.fastq"
         #expand("results/assembly/{{sample}}_{{unit}}/{{sample}}_{{unit}}_{read}{repaired}{filtered}.fastq",read=reads ,repaired=CONSTRAINT_REPAIRED_2,filtered=CONSTRAINT_FILTER_2)
         output:
@@ -44,7 +44,7 @@ if config["derep"]["centroid_selection"] == "frequency":
 elif config["derep"]["centroid_selection"] == "quality":
     rule derep:
         input:
-            expand("results/assembly/{{sample}}_{{unit}}/{{sample}}_{{unit}}{repaired}{filtered}.fastq",repaired=CONSTRAINT_REPAIRED_3, filtered=CONSTRAINT_FILTER_3)#expand("results/assembly/{{sample}}_{{unit}}/{{sample}}_{{unit}}_assembled{filtered}.fastq",filtered=CONSTRAINT_FILTER_3)
+            expand("results/assembly/{{sample}}_{{unit}}/{{sample}}_{{unit}}_assembled.fastq") if not config["constraint_filtering"]["after_assembly"] else expand("results/assembly/{{sample}}_{{unit}}/{{sample}}_{{unit}}{repaired}{filtered}.fastq",repaired=CONSTRAINT_REPAIRED_3, filtered=CONSTRAINT_FILTER_3)#expand("results/assembly/{{sample}}_{{unit}}/{{sample}}_{{unit}}_assembled{filtered}.fastq",filtered=CONSTRAINT_FILTER_3)
         output:
             "results/assembly/{sample}_{unit}/{sample}_{unit}_derep.fastq"
         conda:
