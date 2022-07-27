@@ -29,6 +29,10 @@ if config["general"]["in_vivo"]:
     rule all:
         input:
             expand("results/contig_assembly/assemblies/{unit.sample}_{unit.unit}.fasta", unit=units.reset_index().itertuples())
+elif not config["derep"]["clustering"]:
+    rule all:
+        input:
+            expand("results/assembly/{unit.sample}_{unit.unit}/{unit.sample}_{unit.unit}_derep.fasta", unit=units.reset_index().itertuples()) if config["derep"] == "frequency" else expand("results/assembly/{unit.sample}_{unit.unit}/{unit.sample}_{unit.unit}_derep.fastq", unit=units.reset_index().itertuples())
 else:
     rule all:
         input:
