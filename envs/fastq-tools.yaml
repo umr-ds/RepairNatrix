@@ -4,11 +4,5 @@ channels:
   - salilab
   - defaults
 dependencies:
-  - _libgcc_mutex=0.1=main
-  - _openmp_mutex=4.5=1_gnu
-  - fastq-tools=0.8.3=h38613fd_1
-  - libgcc-ng=9.3.0=h5101ec6_17
-  - libgomp=9.3.0=h5101ec6_17
-  - libstdcxx-ng=9.3.0=hd4cf53a_17
-  - pcre=8.45=h295c915_0
-  - zlib=1.2.11=h7f8727e_4
+  - fastq-tools=0.8.3
+

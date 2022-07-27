@@ -1,4 +1,16 @@
 if config["derep"]["centroid_selection"] == "frequency":
+    rule filtered_to_fasta:
+        input:
+            expand("results/assembly/{{sample}}_{{unit}}/{{sample}}_{{unit}}_assembled.fastq") if not config["constraint_filtering"]["after_assembly"] else expand("results/assembly/{{sample}}_{{unit}}/{{sample}}_{{unit}}{repaired}{filtered}.fastq",repaired=CONSTRAINT_REPAIRED_3, filtered=CONSTRAINT_FILTER_3)#expand("results/assembly/{{sample}}_{{unit}}/{{sample}}_{{unit}}_assembled{filtered}.fastq",filtered=CONSTRAINT_FILTER_3)
+            #"results/assembly/{sample}_{unit}/{sample}_{unit}{RES_STR}.fastq"
+        #expand("results/assembly/{{sample}}_{{unit}}/{{sample}}_{{unit}}_{read}{repaired}{filtered}.fastq",read=reads ,repaired=CONSTRAINT_REPAIRED_2,filtered=CONSTRAINT_FILTER_2)
+        output:
+            "results/assembly/{sample}_{unit}/{sample}_{unit}.fasta"
+        conda:
+            "../envs/seqtk.yaml"
+        shell:
+            "seqtk seq -a {input} > {output}"
+
     rule vsearch_derep:
         input:
             "results/assembly/{sample}_{unit}/{sample}_{unit}.fasta"
@@ -6,10 +18,12 @@ if config["derep"]["centroid_selection"] == "frequency":
             "results/assembly/{sample}_{unit}/{sample}_{unit}_derep.fasta"
         conda:
             "../envs/vsearch.yaml"
+        params:
+            minsize=config["derep"]["minsize"]
         log:
             "results/logs/{sample}_{unit}/vsearch_derep.log"
         shell:
-            "vsearch --derep_fulllength {input} --output {output} --log {log}"
+            "vsearch --derep_fulllength {input} --output {output} --log {log} --minuniquesize {params.minsize}"
 
     rule vsearch_cluster:
         input:
@@ -30,11 +44,13 @@ if config["derep"]["centroid_selection"] == "frequency":
 elif config["derep"]["centroid_selection"] == "quality":
     rule derep:
         input:
-            expand("results/assembly/{{sample}}_{{unit}}/{{sample}}_{{unit}}_assembled{filtered}.fastq",filtered=CONSTRAINT_FILTER_3)
+            expand("results/assembly/{{sample}}_{{unit}}/{{sample}}_{{unit}}_assembled.fastq") if not config["constraint_filtering"]["after_assembly"] else expand("results/assembly/{{sample}}_{{unit}}/{{sample}}_{{unit}}{repaired}{filtered}.fastq",repaired=CONSTRAINT_REPAIRED_3, filtered=CONSTRAINT_FILTER_3)#expand("results/assembly/{{sample}}_{{unit}}/{{sample}}_{{unit}}_assembled{filtered}.fastq",filtered=CONSTRAINT_FILTER_3)
         output:
             "results/assembly/{sample}_{unit}/{sample}_{unit}_derep.fastq"
         conda:
             "../envs/derep_cluster_qual.yaml"
+        params:
+            minsize=config["derep"]["minsize"]
         script:
             "../scripts/derep_quality.py"
 
@@ -72,4 +88,14 @@ elif config["derep"]["centroid_selection"] == "quality":
             "results/logs/{sample}_{unit}/vsearch_cluster.log"
         shell:
             "vsearch --usersort --cluster_smallmem {input} --centroid {output.cent} --id {params.id} --clusters results/assembly/{wildcards.sample}_{wildcards.unit}/clust --log {log} --threads {threads}"
-            
+
+
+rule unfold_fasta:
+    input:
+        "results/assembly/{sample}_{unit}/{sample}_{unit}_cluster.fasta"
+    output:
+        "results/assembly/{sample}_{unit}/{sample}_{unit}_fin.fasta"
+    conda:
+        "../envs/seqtk.yaml"
+    shell:
+        "seqtk seq {input} > {output}"

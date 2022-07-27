@@ -24,15 +24,25 @@ CONSTRAINT_REPAIRED_1 = '_constraint_repaired' if config['constraint_filtering']
 CONSTRAINT_REPAIRED_2 = '_constraint_repaired' if config['constraint_filtering']['repair_after_quality_control'] else ''
 CONSTRAINT_REPAIRED_3 = '_assembled_constraint_repaired' if config['constraint_filtering']['repair_after_assembly'] else ''
 RES_STR = f"{CONSTRAINT_FILTER_1}{CONSTRAINT_FILTER_2}{CONSTRAINT_FILTER_3}{CONSTRAINT_REPAIRED_1}{CONSTRAINT_REPAIRED_2}{CONSTRAINT_REPAIRED_3}"
-rule all:
-    input:
-        expand("results/assembly/{unit.sample}_{unit.unit}/{unit.sample}_{unit.unit}{res_str}.fasta",
-            unit=units.reset_index().itertuples(), res_str=RES_STR)
+
+if config["general"]["in_vivo"]:
+    rule all:
+        input:
+            expand("results/contig_assembly/assemblies/{unit.sample}_{unit.unit}.fasta", unit=units.reset_index().itertuples())
+elif not config["derep"]["clustering"]:
+    rule all:
+        input:
+            expand("results/assembly/{unit.sample}_{unit.unit}/{unit.sample}_{unit.unit}_derep.fasta", unit=units.reset_index().itertuples()) if config["derep"] == "frequency" else expand("results/assembly/{unit.sample}_{unit.unit}/{unit.sample}_{unit.unit}_derep.fastq", unit=units.reset_index().itertuples())
+else:
+    rule all:
+        input:
+            expand("results/assembly/{unit.sample}_{unit.unit}/{unit.sample}_{unit.unit}_fin.fasta",#{res_str}
+                unit=units.reset_index().itertuples())  #res_str=RES_STR
 
 ruleorder: assembly > prinseq
-ruleorder:
 
 include: "rules/demultiplexing.smk"
 include: "rules/read_assembly.smk"
 include: "rules/dereplication.smk"
 include: "rules/constraint_filtering.smk"
+include: "rules/contig_assembly.smk"
