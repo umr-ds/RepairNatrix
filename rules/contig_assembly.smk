@@ -28,6 +28,6 @@ rule rename_data_assembly:
     input:
         "results/contig_assembly/{sample}_{unit}/spades/contigs.fasta"
     output:
-        "results/contig_assembly/assemblies/{sample}_{unit}.fasta",
+        "results/contig_assembly/assemblies/{sample}_{unit}_assembled.fasta"
     shell:
         "cp {input} {output}"

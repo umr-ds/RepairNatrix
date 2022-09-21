@@ -122,6 +122,144 @@ static PyObject* longestSequenceOfChar(PyObject* self,  PyObject *args)
    return return_val;
 }
 
+/*
+  a = pointer to the start of the first substring,
+  b = pointer to the start of the second substring,
+  n = length of the substring to compare
+*/
+static bool substring_equal(char *a, char *b, int n) { // or use strncmp() == 0 ?
+   int i = 0;
+   while (i < n) {
+       if (a[i] != b[i]) {
+           return false;
+       }
+       i += 1;
+   }
+   return true;
+}
+
+
+static PyObject* kmer_counting_error_val(PyObject* self, PyObject *args)
+{
+//TODO: add initial kmer to the result if it IS a violating kmer + inspect why numbers increase so much!
+    char* seq;
+    unsigned int k, upper_bound = 0;
+    if (!PyArg_ParseTuple(args, "sii", &seq, &k, &upper_bound)) {
+        return NULL;
+    }
+    unsigned int seq_len = strlen(seq);
+    double *res = calloc(seq_len, sizeof(double));
+    double *current_kmer_tmp_result = calloc(seq_len, sizeof(double));
+    bool *seen_kmer_start_points = calloc(seq_len, sizeof(bool));
+    for (unsigned int i = 0; i <= (seq_len - k); i++) {
+        if (seen_kmer_start_points[i]) {
+            // this kmer was already seen, we can safely skip it...
+            continue;
+        }
+        unsigned int count = 0;
+        for (unsigned int j = i; j <= seq_len - k; j += 1) {
+            // compare seq[i:i+k] with seq[j:j+k]
+            if (substring_equal(&seq[i], &seq[j], k)) {
+                // if they are equal, we set seen to true to skip this position in the future
+                seen_kmer_start_points[j] = true;
+                // we increase the number of occurrences of the current kmer
+                count++;
+                for (unsigned int h = 0; h < k; h++) {
+                    // increase the kmer-occurrence for each base in the current kmer ( seq[j:j+h] )
+                    current_kmer_tmp_result[j + h] += 1;
+                }
+            }
+        }
+        // if we got more than upper_bound occurrences of this kmer, we add it to the result
+        if (count >= upper_bound) {
+            // we got a kmer > upper_bound: update result
+            for (unsigned int j = i; j < seq_len; j++) {
+                if (current_kmer_tmp_result[j] > 0)
+                    res[j] += current_kmer_tmp_result[j] * (count - upper_bound);
+            }
+        }
+        // reset the temporary array to all 0;
+        for (unsigned int j = i; j < strlen(seq); j++) {
+            current_kmer_tmp_result[j] = 0;
+        }
+    }
+    npy_intp dims[1];
+    dims[0] = seq_len;
+    PyObject *out = PyArray_SimpleNewFromData(1, dims, NPY_DOUBLE, (void *)res);
+    free(current_kmer_tmp_result);
+    free(seen_kmer_start_points);
+    PyArray_ENABLEFLAGS((PyArrayObject*)out, NPY_ARRAY_OWNDATA);
+    return out;
+}
+
+
+static PyObject* kmer_counting_error_val_OLD(PyObject* self, PyObject *args)
+{
+//TODO: add initial kmer to the result if it IS a violating kmer + inspect why numbers increase so much!
+  char* seq;
+  unsigned int k, upper_bound = 0;
+  if (!PyArg_ParseTuple(args, "sii", &seq, &k, &upper_bound)) {
+       return NULL;
+ }
+  unsigned int seq_len = strlen(seq);
+  // we store the position of all duplicated substrings in this array. (temporarily even for k mers below the upper bound))
+  double* res = calloc(seq_len, sizeof(double));
+  // create an array:
+  unsigned int* kmer_pos = calloc((seq_len+1), sizeof(int));
+  // only if we have more kmers than we have nucleotides, we will have a problem... (wont happen since k >= 1)
+  unsigned int kmer_pos_current_size = 0; // keep track of the next free position in the array
+  for (unsigned int i = 0; i < (seq_len-k+1); i++) {
+    //if i is equal to any of the positions stored in kmer_post, we can skip it
+    for (unsigned int j = 0; j < kmer_pos_current_size; j++) {
+      if (kmer_pos[j] == i) {
+        PySys_WriteStdout("\nSkipping kmer at position %d\n", i);
+        goto cnt;
+      } else {
+        PySys_WriteStdout("%d, ", kmer_pos[j]);
+      }
+    }
+    // backup the current size of the array in case the kmer is below the upper_bound
+    unsigned int kmer_pos_current_size_backup = kmer_pos_current_size;
+    // slide over the remaining sequence to find other occurences of the current kmer:
+    unsigned int count = 0;
+    for (unsigned int j = i; j < seq_len-k+1; j++) {
+      if (substring_equal(&seq[i], &seq[j], k)) {
+        count++;
+      }
+    }
+    for (unsigned int j = i; j < seq_len-k+1; j++) {
+      if (substring_equal(&seq[i], &seq[j], k)) {
+        PySys_WriteStdout("substr's are equal: j=%d, i=%d, k=%d\n", j, i, k);
+        kmer_pos[kmer_pos_current_size] = count;
+        kmer_pos_current_size += 1;
+      }
+    }
+    // check how many times the kmer occurs in the sequence:
+    unsigned int kmer_size = kmer_pos_current_size - kmer_pos_current_size_backup;
+    if (kmer_size > upper_bound) {
+      // we found a kmer that is above the upper bound
+      for (unsigned int i = kmer_pos_current_size_backup; i < kmer_pos_current_size; i++) {
+        for (unsigned int j = 0; j < k; j++) {
+          res[i+j] = 1.0 * kmer_size - upper_bound;
+        }
+      }
+    } else {
+        //reset the current position in the array...
+        kmer_pos_current_size = kmer_pos_current_size_backup;
+    }
+  cnt:;
+  }
+  //convert to PyArray:
+  npy_intp dims[1];
+  dims[0] = seq_len;
+  //TODO find out why the first 2 values are 0 instead of the correct values!
+  PyObject *out = PyArray_SimpleNewFromData(1, dims, NPY_DOUBLE, (void *)res);
+  free(res);
+  free(kmer_pos);
+  return out;
+}
+
+
 static PyObject* repeatRegion(PyObject* self,  PyObject *args)
 {
    char *text;
@@ -267,6 +405,8 @@ static char bitsSet_docs[] =
     "bitsSet(integer): returns the number of bits set int given integer";
 static char bitSet_docs[] =
 "bitSet(X,b): returns if bit b is set in X";
+static char kmer_counting_error_value_docs[] =
+"kmer_counting_error_val(seq,k, upper_bound): returns the error value for all kmers of length k in seq with a upper bound of upper_bound";
 static PyMethodDef cdnarules_funcs[] = {
    //{"microsatellite", (PyCFunction)microsatellite, METH_NOARGS, cdnarules_docs},
    {"bitsSet", bitsSet, METH_VARARGS, bitsSet_docs},
@@ -279,6 +419,7 @@ static PyMethodDef cdnarules_funcs[] = {
    {"strContainsSub", strContainsSub, METH_VARARGS, cdnarules_strcsubstr},
    {"bitsSet", bitsSet, METH_VARARGS, bitsSet_docs},
    {"bitSet", bitSet, METH_VARARGS, bitSet_docs},
+   {"kmer_counting_error_val", kmer_counting_error_val, METH_VARARGS, kmer_counting_error_value_docs},
    {NULL, NULL, 0, NULL}
 };
 

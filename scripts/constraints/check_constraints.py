@@ -1,3 +1,4 @@
+import functools
 import glob
 import os.path
 from shutil import move
@@ -23,8 +24,15 @@ pbar = None
 # try:
 # TODO. use cdnarules where possible
 import cdnarules
+from FastDNARules import FastDNARules
+rules = FastDNARules()
+overall_gc_content_error_val = lambda data, low, high: [rules.overall_gc_content(data, calc_func=lambda x: 1.0 if (x < low or x > high) else 0.0)] * len(data)
+
+# homopolymer_error_val = lambda data, count, increasing_chance: [(x-count if increasing_chance else 1.0) if x > count else 0.0 for x in rules.homopolymer_val(sequence)]
+
+from FastDNARules import lax_homopolymers
 # except ImportError:
-from gc_content import overall_gc_content_error_val
+from gc_content import overall_gc_content_error_val as overall_gc_content_error_val_slow
 from homopolymers import homopolymer_error_val
 from kmer import kmer_counting_error_val
 from undesired_subsequences import UndesiredSubSequenceFinder
@@ -218,7 +226,7 @@ def repair_single_cluster(single_cluster_data, desired_length=160):
     res = [sum(x) for x in zip(*all_violations)]
     if sum(res) == 0 and len(res) == desired_length:
         # there was no error in the centroid. OPTIONAL: mark as correct
-        return "C", centroid  # Centeroid was Correct
+        return "C", centroid  # Centroid was Correct
         # continue
     else:
         # there was an error in the centroid: iterate over the cluster
@@ -231,7 +239,7 @@ def repair_single_cluster(single_cluster_data, desired_length=160):
                 # TODO: test all elements in cluster and choose the one with the lowest number of changes compared
                 #  to the original centroid
                 # TODO: OR check if the centroid files are ordered by distance, in that case this code is correct!
-                return "S_C", seq  # Centeroid was substituted - new centeroid is correct - no repair was needed!
+                return "S_C", seq  # Centroid was substituted - new centroid is correct - no repair was needed!
             # else:
             # the sequence does not fulfill all constraints
             # continue
@@ -248,11 +256,11 @@ def repair_single_cluster(single_cluster_data, desired_length=160):
                 if sum(res) == 0 and len(res) == desired_length:
                     # run repair for all elements in the cluster
                     # and take the repaired sequence with the LEAST repairs needed!
-                    # centeroid was substituted - substituted sequnece had to be repaired
+                    # centroid was substituted - substituted sequence had to be repaired
                     possible_results.append((repair_res[4], (f"S_R_C_{repair_res[4]}", repair_res[1])))
                 else:
                     continue
-            # TODO: if there are multiple seqeunces that were repaired, choose the one with the lowest number of changes
+            # TODO: if there are multiple sequences that were repaired, choose the one with the lowest number of changes
             # AND with the lowest distance to the original centroid
             if len(possible_results) > 0:
                 return sorted(possible_results, key=lambda x: x[0])[0][1]
@@ -269,7 +277,7 @@ def repair_clusters(desired_length):
     """
     global pbar
     try:
-        input_file = snakemake.input.cent  # centeroid file...
+        input_file = snakemake.input.cent  # centroid file...
     except NameError:
         logging.info("Running in non-snakemake mode - this should be used for testing only")
         input_file = snakemake_input_file_zero
@@ -302,18 +310,18 @@ def repair_clusters(desired_length):
     # res_centroids = []
     pbar = tqdm(total=len(clusters))
     p = multiprocessing.Pool(cores)
-    res_centroids = [x for x in p.imap_unordered(partial(repair_single_cluster, desired_length=desired_length), iterable=clusters,
-                                                 chunksize=math.ceil(len(clusters) / (cores * 10)))]
+    #res_centroids = [x for x in p.imap_unordered(partial(repair_single_cluster, desired_length=desired_length), iterable=clusters,
+    #                                             chunksize=math.ceil(len(clusters) / (cores * 10)))]
+    res_centroids = [repair_single_cluster(x, desired_length) for x in clusters]
     if not inplace_repair:
         # read all entries of input_file (containing all initial centroids)
         # initial_centroids = dinopy.FastqReader(input_file)
         res_seqs = set([b for a,b in res_centroids])
-        # add original centeroid to
+        # add original centroid to
         print(f"{input_file}")
         for name, sequence in read_fasta(input_file).items():
             if sequence not in res_seqs:
                 res_centroids.append((f"{name}_O_F", sequence))
-                # initial_centeroids += org_centeroid_tuple.sequence
 
     if os.path.exists(output_file):
         renamed_file = output_file.replace(".fastq", "old_.fastq").replace(".fasta", "_old.fasta")
@@ -328,7 +336,7 @@ def repair_clusters(desired_length):
         move(output_cluster_mapping_file, renamed_file)
     with open(output_cluster_mapping_file, "w") as cluster_output:
         json.dump([x for x in zip([b for a, b in res_centroids], clusters)], fp=cluster_output)
-    # TODO we want not only the choosen centeroid + quality estimation,
+    # TODO we want not only the chosen centroid + quality estimation,
     #  but also all other elements per cluster with their quality
     return res_centroids
 
@@ -344,16 +352,16 @@ def sort_results(in_str):
     if ":" in in_str:
         in_str = in_str.split(":")[-1]
         in_str = in_str[in_str.find("_") + 1:]
-    if in_str == "C":  # centeroid was correct
+    if in_str == "C":  # centroid was correct
         return -1000
-    elif in_str == "S_C":  # centeroid was substituted from cluster, new centeroid correct
+    elif in_str == "S_C":  # centroid was substituted from cluster, new centroid correct
         return -500
-    elif in_str.startswith("S_R_C_"):  # centeroid was (potentially) substituted; new centeroid was repaired (X repairs)
+    elif in_str.startswith("S_R_C_"):  # centroid was (potentially) substituted; new centroid was repaired (X repairs)
         return int(in_str.split("_")[-1])
     elif in_str == "F":  # repair failed (repair limit reached for all elements in the cluster!)
         return MAX_ITERATIONS + 1000
     elif in_str.startswith("O_F"):  # in case of INPLACE_REPAIR = False, we want to flag invalid original seqs as failed
-        return MAX_ITERATIONS + 100
+        return MAX_ITERATIONS + 1001
     else:
         logging.error(f"sorting found not handled case: {in_str}")
         return MAX_ITERATIONS
@@ -603,9 +611,8 @@ def main(desired_length=160):
                 # we might be in a FASTA-File and thus have no access to the quality scores
                 phred_score = [int(repair_quality_score)] * len(seq[1])
             else:
-                phred_score = [int(x) for x in
-                               seq[2]]
-            out_data.append((seq[1], seq_name.encode(), chr(int(phred_score))))
+                phred_score = [int(x) for x in seq[2]]
+            out_data.append((seq[1], seq_name.encode(), [chr(int(x)) for x in phred_score]))
     for elem in sorted(a, key=lambda x: x[-1]):
         # store result as a fastq file to reflect
         bytes_quality_values = bytes(
@@ -639,7 +646,7 @@ def main(desired_length=160):
     with open(out_path, "w") as f:
         json.dump(repaired_tuples, f)
     # print(len([x for x in a if x[4] < 100]), len(a))
-    logging.info(f"Saving result-mapping for alternative centeroid selection during decoding: {out_path}")
+    logging.info(f"Saving result-mapping for alternative centroid selection during decoding: {out_path}")
 
 #if __name__ == "__main__":
 # call to repair_cluster IF we have a clustered input file!

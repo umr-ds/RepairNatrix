@@ -4,6 +4,14 @@ def get_fastq(wildcards):
                         group=[1,2], **wildcards)
     return "demultiplexed/{sample}_{unit}_1{repaired}{filtered}.fastq".format(repaired=CONSTRAINT_REPAIRED_1, filtered=CONSTRAINT_FILTER_1, **wildcards)
 
+
+#def get_fastq(wildcards):
+#    if not is_single_end(wildcards.sample, wildcards.unit):
+#        return expand("demultiplexed/{sample}_{unit}_{group}.fastq",
+#                        group=[1,2], **wildcards)
+#    return expand("demultiplexed/{sample}_{unit}_1.fastq", **wildcards)
+
+
 rule define_primer:
     input:
         primer_table=config["general"]["primertable"]

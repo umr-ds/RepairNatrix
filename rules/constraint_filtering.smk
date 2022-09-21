@@ -100,19 +100,22 @@ if config['constraint_filtering']['repair_after_quality_control']:
         output:
             expand("results/assembly/{{sample}}_{{unit}}/{{sample}}_{{unit}}_{read}{repaired}.fastq",read=reads,repaired=CONSTRAINT_REPAIRED_2),
             expand("results/assembly/{{sample}}_{{unit}}/{{sample}}_{{unit}}_{read}{repaired}_mapping.json", read=reads, repaired=CONSTRAINT_REPAIRED_2),
-
+            #expand("results/assembly/{unit.sample}_{unit.unit}/{unit.sample}_{unit.unit}_{read}{repaired}.fastq",unit=units.reset_index().itertuples(),read=reads,repaired=CONSTRAINT_REPAIRED_2),
+            #expand("results/assembly/{unit.sample}_{unit.unit}/{unit.sample}_{unit.unit}_{read}{repaired}_mapping.json",unit=units.reset_index().itertuples(),read=reads,repaired=CONSTRAINT_REPAIRED_2),
 
 if config['constraint_filtering']['repair_after_assembly']:
     #TODO: in this case we want to no only repair invalid centroids but ideally we would want to select:
     # the best representative of the cluster
-    # with "best" being: 1) the smallest distance to the current centroid and 2) fulfilling all constraints
+    # with "best" being: 1) the smallest distance to the current centroid (yet to do) and 2) fulfilling all constraints (DONE)
+
     use rule constraint_repair_base as constraint_repair_3 with:
         input:
             "results/assembly/{sample}_{unit}/{sample}_{unit}_assembled.fastq",
             #derep="results/assembly/{sample}_{unit}/{sample}_{unit}_derep.fasta",
             cent="results/assembly/{sample}_{unit}/{sample}_{unit}_cluster.fasta"
         output:
-            expand("results/assembly/{{sample}}_{{unit}}/{{sample}}_{{unit}}{repaired}.fasta",repaired=CONSTRAINT_REPAIRED_3),
-            expand("results/assembly/{{sample}}_{{unit}}/{{sample}}_{{unit}}{repaired}_clusters.json", repaired=CONSTRAINT_REPAIRED_3),
-            #"results/assembly/{sample}_{unit}/{sample}_{unit}_derep_repaired.fastq",# "repaired" bases will have a lower quality score (and will be APPENDED - or replace the original ones?)
-            #"results/assembly/{sample}_{unit}/{sample}_{unit}_derep_repair_mapping.json"  # mapping repaired reads to original reads
+            expand("results/contig_assembly/assemblies/{{sample}}_{{unit}}{repaired}.fasta",repaired=CONSTRAINT_REPAIRED_3),
+            expand("results/contig_assembly/assemblies/{{sample}}_{{unit}}{repaired}_clusters.json", repaired=CONSTRAINT_REPAIRED_3),
+
+            #expand("results/assembly/{unit.sample}_{unit.unit}/{unit.sample}_{unit.unit}{repaired}.fasta",unit=units.reset_index().itertuples(),repaired=CONSTRAINT_REPAIRED_3),
+            #expand("results/assembly/{unit.sample}_{unit.unit}/{unit.sample}_{unit.unit}{repaired}_clusters.json",unit=units.reset_index().itertuples(),repaired=CONSTRAINT_REPAIRED_3),
