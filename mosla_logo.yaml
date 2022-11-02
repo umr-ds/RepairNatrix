@@ -39,8 +39,9 @@ constraint_filtering:
   undesired_subsequences:
     file: scripts/constraints/undesired_subsequences.txt
   kmer_counting:
-    k: 20
-    upper_bound: 2
+    k: 10
+    upper_bound: 20
+    active: false
 
 contig_assembly:
         blast_db:

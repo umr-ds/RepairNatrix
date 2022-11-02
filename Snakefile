@@ -12,7 +12,7 @@ name_ext = config["general"]["name_ext"][:-1]
 
 def is_single_end(sample, unit):
     # TODO: here we get unit with added CONSTRAINT_REPAIRED_* and CONSTRAINT_FILTER_* instead of JUST unit
-    return False  #pd.isnull(units.loc[(sample,unit), "fq2"])
+    return pd.isnull(units.loc[(sample,unit), "fq2"])
 
 
 if config["general"]["paired_End"]:
@@ -26,26 +26,21 @@ CONSTRAINT_FILTER_3 = '_constraint_filtered' if config['constraint_filtering']['
 CONSTRAINT_REPAIRED_1 = '_constraint_repaired' if config['constraint_filtering']['repair_after_demultiplexing'] else ''
 CONSTRAINT_REPAIRED_2 = '_constraint_repaired' if config['constraint_filtering']['repair_after_quality_control'] else ''
 CONSTRAINT_REPAIRED_3 = '_constraint_repaired' if config['constraint_filtering']['repair_after_assembly'] else ''
-RES_STR = f"{CONSTRAINT_FILTER_1}{CONSTRAINT_FILTER_2}{CONSTRAINT_FILTER_3}{CONSTRAINT_REPAIRED_1}{CONSTRAINT_REPAIRED_2}{CONSTRAINT_REPAIRED_3}"
-
+RES_STR = f"{CONSTRAINT_REPAIRED_1}{CONSTRAINT_FILTER_1}{CONSTRAINT_REPAIRED_2}{CONSTRAINT_FILTER_2}{CONSTRAINT_REPAIRED_3}{CONSTRAINT_FILTER_3}"
 if not config["derep"]["clustering"]:
     rule all:
         input:
             expand("results/assembly/{unit.sample}_{unit.unit}/{unit.sample}_{unit.unit}_derep" + RES_STR + ".fast" + (
                 "a" if config["derep"][
                            "centroid_selection"] == "frequency" else "q"),unit=units.reset_index().itertuples())
-elif config["general"]["in_vivo"]:
+elif config["general"]["in_vivo"] or RES_STR != "":
     rule all:
         input:
             expand("results/contig_assembly/assemblies/{unit.sample}_{unit.unit}_assembled" + RES_STR + ".fasta",unit=units.reset_index().itertuples())
-elif RES_STR != "":
-    rule all:
-        input:
-            expand("results/contig_assembly/assemblies/{unit.sample}_{unit.unit}" + RES_STR + ".fasta",unit=units.reset_index().itertuples())
 else:
     rule all:
         input:
-            expand("results/assembly/{unit.sample}_{unit.unit}/{unit.sample}_{unit.unit}_fin" + RES_STR + ".fasta",
+            expand("results/assembly/{unit.sample}_{unit.unit}/{unit.sample}_{unit.unit}_fin" + RES_STR + ".fastq",
                 unit=units.reset_index().itertuples())
 ruleorder: assembly > prinseq
 

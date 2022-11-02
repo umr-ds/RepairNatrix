@@ -27,6 +27,7 @@ rule constraint_repair_base:
             max_homopolymer_length=config["constraint_filtering"]["homopolymer"]["count"],
             illegal_sequences=config["constraint_filtering"]["undesired_subsequences"]["file"],
             subsequences_file= config['constraint_filtering']['undesired_subsequences']['file'] if 'undesired_subsequences' in config['constraint_filtering']['constraints'] else[],
+            kmer_active=config["constraint_filtering"]["kmer_counting"]["active"],
             kmer_k=config["constraint_filtering"]["kmer_counting"]["k"],
             kmer_max_count=config["constraint_filtering"]["kmer_counting"]["upper_bound"]
         conda:
@@ -61,21 +62,39 @@ if config['constraint_filtering']['after_quality_control']:
             expand("results/assembly/{{sample}}_{{unit}}/{{sample}}_{{unit}}_{read}{repaired}{filtered}_out.fastq",read=reads,filtered=CONSTRAINT_FILTER_2,repaired=CONSTRAINT_REPAIRED_2)
 
 if config['constraint_filtering']['after_assembly']:
-    use rule constraint_filtering_base as constraint_filtering_3 with:
-        input:
-            expand("results/assembly/{{sample}}_{{unit}}/{{sample}}_{{unit}}_assembled{repaired}.fastq",repaired=CONSTRAINT_REPAIRED_3),
-            subsequences_file=config['constraint_filtering']['undesired_subsequences'][
-                'file'] if 'undesired_subsequences' in config['constraint_filtering']['constraints'] else []
-        log:
-            "results/logs/{sample}_{unit}/constraint_filtering_after_assembly.txt"
-        output:
-            expand("results/assembly/{{sample}}_{{unit}}/{{sample}}_{{unit}}{repaired}{filtered}.fastq",repaired=CONSTRAINT_REPAIRED_3, filtered=CONSTRAINT_FILTER_3),
-            expand("results/assembly/{{sample}}_{{unit}}/{{sample}}_{{unit}}{repaired}{filtered}_out.fastq",repaired=CONSTRAINT_REPAIRED_3, filtered=CONSTRAINT_FILTER_3)
-        params:
-            constraints=config["constraint_filtering"],
-            primer_length=0,
-            sequence_length=0,
-            paired=False
+    if config["derep"]["clustering"]:
+        use rule constraint_filtering_base as constraint_filtering_3 with:
+            input:
+                expand("results/assembly/{{sample}}_{{unit}}{repaired}.fastq",repaired=CONSTRAINT_REPAIRED_3),
+                subsequences_file=config['constraint_filtering']['undesired_subsequences'][
+                    'file'] if 'undesired_subsequences' in config['constraint_filtering']['constraints'] else []
+            log:
+                "results/logs/{sample}_{unit}/constraint_filtering_after_assembly.txt"
+            output:
+                expand("results/assembly/{{sample}}_{{unit}}{repaired}{filtered}.fastq",repaired=CONSTRAINT_REPAIRED_3, filtered=CONSTRAINT_FILTER_3),
+                expand("results/assembly/{{sample}}_{{unit}}{repaired}{filtered}_out.fastq",repaired=CONSTRAINT_REPAIRED_3, filtered=CONSTRAINT_FILTER_3)
+            params:
+                constraints=config["constraint_filtering"],
+                primer_length=0,
+                sequence_length=0,
+                paired=False
+    else:
+        use rule constraint_filtering_base as constraint_filtering_3 with:
+            input:
+                expand("results/assembly/{{sample}}_{{unit}}_derep{repaired}.fast" + (
+                    "a" if config["derep"]["centroid_selection"] == "frequency" else "q"),repaired=CONSTRAINT_REPAIRED_3),
+                subsequences_file=config['constraint_filtering']['undesired_subsequences'][
+                    'file'] if 'undesired_subsequences' in config['constraint_filtering']['constraints'] else []
+            log:
+                "results/logs/{sample}_{unit}/constraint_filtering_after_assembly.txt"
+            output:
+                expand("results/assembly/{{sample}}_{{unit}}{repaired}{filtered}.fastq",repaired=CONSTRAINT_REPAIRED_3,filtered=CONSTRAINT_FILTER_3),
+                expand("results/assembly/{{sample}}_{{unit}}{repaired}{filtered}_out.fastq",repaired=CONSTRAINT_REPAIRED_3,filtered=CONSTRAINT_FILTER_3)
+            params:
+                constraints=config["constraint_filtering"],
+                primer_length=0,
+                sequence_length=0,
+                paired=False
 
 if config['constraint_filtering']['repair_after_demultiplexing']:
     use rule constraint_repair_base as constraint_repair_1 with:
@@ -107,15 +126,34 @@ if config['constraint_filtering']['repair_after_assembly']:
     #TODO: in this case we want to no only repair invalid centroids but ideally we would want to select:
     # the best representative of the cluster
     # with "best" being: 1) the smallest distance to the current centroid (yet to do) and 2) fulfilling all constraints (DONE)
+    if not config["derep"]["clustering"]:
+        use rule constraint_repair_base as constraint_repair_3 with:
+            input:
+                "results/assembly/{sample}_{unit}/{sample}_{unit}_assembled.fastq",
+                #derep="results/assembly/{sample}_{unit}/{sample}_{unit}_derep.fasta",
+                cent="results/assembly/{sample}_{unit}/{sample}_{unit}_cluster.fasta"
+            output:
+                expand("results/assembly/{{sample}}_{{unit}}{repaired}.fastq",repaired=CONSTRAINT_REPAIRED_3),
+                expand("results/assembly/{{sample}}_{{unit}}{repaired}_clusters.json", repaired=CONSTRAINT_REPAIRED_3),
+    elif config["general"]["in_vivo"] or RES_STR != "":
+        use rule constraint_repair_base as constraint_repair_3 with:
+            input:
+                "results/contig_assembly/assemblies/{sample}_{unit}_assembled.fasta",
+                #derep="results/assembly/{sample}_{unit}/{sample}_{unit}_derep.fasta",
+                #cent="results/contig_assembly/assemblies/{sample}_{unit}_cluster.fasta",
+            output:
+                expand("results/contig_assembly/assemblies/{{sample}}_{{unit}}_assembled{repaired}.fasta",repaired=CONSTRAINT_REPAIRED_3),
+                expand("results/contig_assembly/assemblies/{{sample}}_{{unit}}_assembled{repaired}_clusters.json",repaired=CONSTRAINT_REPAIRED_3),
+    else:
+        use rule constraint_repair_base as constraint_repair_derep_3 with:
+            input:
+                "results/assembly/{sample}_{unit}_derep.fasta",
+                #derep="results/assembly/{sample}_{unit}/{sample}_{unit}_derep.fasta",
+                cent="results/assembly/{sample}_{unit}_cluster.fasta"
+            output:
+                expand("results/assembly/{{sample}}_{{unit}}_derep{repaired}.fast" + (
+                "a" if config["derep"]["centroid_selection"] == "frequency" else "q"),repaired=CONSTRAINT_REPAIRED_3),
+                expand("results/assembly/{{sample}}_{{unit}}_derep{repaired}_clusters.json", repaired=CONSTRAINT_REPAIRED_3),
 
-    use rule constraint_repair_base as constraint_repair_3 with:
-        input:
-            "results/assembly/{sample}_{unit}/{sample}_{unit}_assembled.fastq",
-            #derep="results/assembly/{sample}_{unit}/{sample}_{unit}_derep.fasta",
-            cent="results/assembly/{sample}_{unit}/{sample}_{unit}_cluster.fasta"
-        output:
-            expand("results/contig_assembly/assemblies/{{sample}}_{{unit}}{repaired}.fasta",repaired=CONSTRAINT_REPAIRED_3),
-            expand("results/contig_assembly/assemblies/{{sample}}_{{unit}}{repaired}_clusters.json", repaired=CONSTRAINT_REPAIRED_3),
-
-            #expand("results/assembly/{unit.sample}_{unit.unit}/{unit.sample}_{unit.unit}{repaired}.fasta",unit=units.reset_index().itertuples(),repaired=CONSTRAINT_REPAIRED_3),
-            #expand("results/assembly/{unit.sample}_{unit.unit}/{unit.sample}_{unit.unit}{repaired}_clusters.json",unit=units.reset_index().itertuples(),repaired=CONSTRAINT_REPAIRED_3),
+                #expand("results/assembly/{unit.sample}_{unit.unit}/{unit.sample}_{unit.unit}{repaired}.fasta",unit=units.reset_index().itertuples(),repaired=CONSTRAINT_REPAIRED_3),
+                #expand("results/assembly/{unit.sample}_{unit.unit}/{unit.sample}_{unit.unit}{repaired}_clusters.json",unit=units.reset_index().itertuples(),repaired=CONSTRAINT_REPAIRED_3),

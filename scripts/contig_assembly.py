@@ -4,6 +4,7 @@ from tqdm import tqdm
 #import dinopy
 import subprocess
 
+print(snakemake.params.blast_db)
 blast_db_targets = snakemake.params.blast_db[str(snakemake.params.sample).split('-')[-1]]
 os.makedirs(snakemake.params.spades_dir, exist_ok=True)
 

@@ -19,7 +19,7 @@ from tqdm import tqdm
 from functools import partial
 import numpy as np
 
-pbar = None
+pbar:tqdm = None
 
 # try:
 # TODO. use cdnarules where possible
@@ -154,6 +154,7 @@ try:
     allowed_min_gc = snakemake.params.min_gc_content
     allowed_max_gc = snakemake.params.max_gc_content
     allowed_max_homopolymer_length = snakemake.params.max_homopolymer_length
+    kmer_active = snakemake.params.kmer_active
     kmer_k = snakemake.params.kmer_k
     kmer_max_count = snakemake.params.kmer_max_count
     cores = snakemake.threads
@@ -170,6 +171,7 @@ except NameError as ne:
     allowed_min_gc = 0.4
     allowed_max_gc = 0.7
     allowed_max_homopolymer_length = 3
+    kmer_active = True
     kmer_k = 10
     kmer_max_count = 20
     cores = 8
@@ -397,7 +399,7 @@ def calc_errors(seq):
     results = [undesired_subsequences_finder.undesired_subsequences_val(seq),
                overall_gc_content_error_val(seq, float(allowed_min_gc), float(allowed_max_gc)),
                homopolymer_error_val(seq, int(allowed_max_homopolymer_length), True),
-               kmer_counting_error_val(seq, int(kmer_k), int(kmer_max_count)),
+               kmer_counting_error_val(seq, int(kmer_k), int(kmer_max_count), kmer_active),
                [0.0] * len(seq)]
     return results
 
@@ -657,6 +659,4 @@ repair_clusters(length)
     #print(a)
 #else:
 #    main()
-# TODO store the result in a json file and in a fastq file (for the correct, swapped and repaired sequences +
-#  corrupt)
 

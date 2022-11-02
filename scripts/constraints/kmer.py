@@ -19,8 +19,10 @@ except ImportError:
     print("C Module failed to load, falling back to slow mode")
 
 
-    def kmer_counting_error_val(seq, k, upper_bound):
+    def kmer_counting_error_val(seq, k, upper_bound, active=True):
         res = [0.0] * len(seq)
+        if not active:
+            return res
         kmer_pos = {}
         for i in range(len(seq) - k + 1):
             kmer = seq[i:i + k]

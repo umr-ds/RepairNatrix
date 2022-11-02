@@ -191,6 +191,9 @@ constraint_filtering:
       description: "upper bound"
       minimum: 0
       type: int
+    active:
+      default: false
+      type: boolean
 derep:
   clustering_id:
     default: 1.0

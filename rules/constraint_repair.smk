@@ -14,6 +14,7 @@ rule constraint_repair:
         max_homopolymer_length=config["constraint_filtering"]["homopolymer"]["count"],
         illegal_sequences=config["constraint_filtering"]["undesired_subsequences"]["file"],
         #todo add kmer checks to constraint_filtering code:
+        kmer_active=config["constraint_filtering"]["kmer_counting"]["active"],
         kmer_counting_k=config["constraint_filtering"]["kmer_counting"]["k"],
         kmer_counting_upper_bound=config["constraint_filtering"]["kmer_counting"]["upper_bound"]
 
