@@ -36,70 +36,23 @@ rule constraint_repair_base:
         script:
             "../scripts/constraints/check_constraints.py"
 
-if config['constraint_filtering']['after_demultiplexing']:
-    use rule constraint_filtering_base as constraint_filtering_1 with:
-        input:
-            expand("demultiplexed/{{sample}}_{{unit}}_{read}{repaired}.fastq",read=reads, repaired=CONSTRAINT_REPAIRED_1),
-            subsequences_file=config['constraint_filtering']['undesired_subsequences'][
-                'file'] if 'undesired_subsequences' in config['constraint_filtering']['constraints'] else []
-        log:
-            "results/logs/{sample}_{unit}/constraint_filtering_after_demultiplex.txt"
-        output:
-            temp(expand("demultiplexed/{{sample}}_{{unit}}_{read}{repaired}{filtered}.fastq",read=reads,filtered=CONSTRAINT_FILTER_1,repaired=CONSTRAINT_REPAIRED_2)),
-            temp(expand("demultiplexed/{{sample}}_{{unit}}_{read}{repaired}{filtered}_out.fastq",read=reads,filtered=CONSTRAINT_FILTER_1,repaired=CONSTRAINT_REPAIRED_2))
-
-if config['constraint_filtering']['after_quality_control']:
-    use rule constraint_filtering_base as constraint_filtering_2 with:
-        input:
-            expand("results/assembly/{{sample}}_{{unit}}/{{sample}}_{{unit}}_{read}{repaired}.fastq",read=reads,repaired=CONSTRAINT_REPAIRED_2),
-            subsequences_file=config['constraint_filtering']['undesired_subsequences'][
-                'file'] if 'undesired_subsequences' in config['constraint_filtering']['constraints'] else []
-        log:
-            "results/logs/{sample}_{unit}/constraint_filtering_after_qc.txt"
-        output:
-            expand("results/assembly/{{sample}}_{{unit}}/{{sample}}_{{unit}}_{read}{repaired}{filtered}.fastq",read=reads,filtered=CONSTRAINT_FILTER_2,repaired=CONSTRAINT_REPAIRED_2),
-            expand("results/assembly/{{sample}}_{{unit}}/{{sample}}_{{unit}}_{read}{repaired}{filtered}_out.fastq",read=reads,filtered=CONSTRAINT_FILTER_2,repaired=CONSTRAINT_REPAIRED_2)
 
 if config['constraint_filtering']['after_assembly']:
     use rule constraint_filtering_base as constraint_filtering_3 with:
         input:
-            expand("results/assembly/{{sample}}_{{unit}}/{{sample}}_{{unit}}_assembled{repaired}.fastq",repaired=CONSTRAINT_REPAIRED_3),
+            expand("results/assembly/{{sample}}_{{unit}}/{{sample}}_{{unit}}_assembled{repaired}.fastq",repaired=CONSTRAINT_REPAIRED),
             subsequences_file=config['constraint_filtering']['undesired_subsequences'][
                 'file'] if 'undesired_subsequences' in config['constraint_filtering']['constraints'] else []
         log:
             "results/logs/{sample}_{unit}/constraint_filtering_after_assembly.txt"
         output:
-            expand("results/assembly/{{sample}}_{{unit}}/{{sample}}_{{unit}}{repaired}{filtered}.fastq",repaired=CONSTRAINT_REPAIRED_3, filtered=CONSTRAINT_FILTER_3),
-            expand("results/assembly/{{sample}}_{{unit}}/{{sample}}_{{unit}}{repaired}{filtered}_out.fastq",repaired=CONSTRAINT_REPAIRED_3, filtered=CONSTRAINT_FILTER_3)
+            expand("results/assembly/{{sample}}_{{unit}}/{{sample}}_{{unit}}{repaired}{filtered}.fastq",repaired=CONSTRAINT_REPAIRED, filtered=CONSTRAINT_FILTER),
+            expand("results/assembly/{{sample}}_{{unit}}/{{sample}}_{{unit}}{repaired}{filtered}_out.fastq",repaired=CONSTRAINT_REPAIRED, filtered=CONSTRAINT_FILTER)
         params:
             constraints=config["constraint_filtering"],
             primer_length=0,
             sequence_length=0,
             paired=False
-
-if config['constraint_filtering']['repair_after_demultiplexing']:
-    use rule constraint_repair_base as constraint_repair_1 with:
-        input:
-            expand("demultiplexed/{{sample}}_{{unit}}_{read}.fastq",read=reads),
-            #derep="results/assembly/{sample}_{unit}/{sample}_{unit}_derep.fasta",
-            #cluster="results/assembly/{sample}_{unit}/{sample}_{unit}_cluster.fasta"
-            cluster="results/assembly/{sample}_{unit}/{sample}_{unit}_cluster.fasta"
-        output:
-            expand("demultiplexed/{{sample}}_{{unit}}_{read}{repaired}.fastq",read=reads,repaired=CONSTRAINT_REPAIRED_1),
-            expand("demultiplexed/{{sample}}_{{unit}}_{read}{repaired}_mapping.json", read=reads, repaired=CONSTRAINT_REPAIRED_1),
-            #"results/assembly/{sample}_{unit}/{sample}_{unit}_derep_repaired.fastq",# "repaired" bases will have a lower quality score (and will be APPENDED - or replace the original ones?)
-            #"results/assembly/{sample}_{unit}/{sample}_{unit}_derep_repair_mapping.json"  # mapping repaired reads to original reads
-
-
-if config['constraint_filtering']['repair_after_quality_control']:
-    use rule constraint_repair_base as constraint_repair_2 with:
-        input:
-            expand("results/assembly/{{sample}}_{{unit}}/{{sample}}_{{unit}}_{read}.fastq",read=reads),
-            #derep="results/assembly/{sample}_{unit}/{sample}_{unit}_derep.fasta",
-            cluster="results/assembly/{sample}_{unit}/{sample}_{unit}_cluster.fasta"
-        output:
-            expand("results/assembly/{{sample}}_{{unit}}/{{sample}}_{{unit}}_{read}{repaired}.fastq",read=reads,repaired=CONSTRAINT_REPAIRED_2),
-            expand("results/assembly/{{sample}}_{{unit}}/{{sample}}_{{unit}}_{read}{repaired}_mapping.json", read=reads, repaired=CONSTRAINT_REPAIRED_2),
 
 
 if config['constraint_filtering']['repair_after_assembly']:
@@ -112,8 +65,8 @@ if config['constraint_filtering']['repair_after_assembly']:
             #derep="results/assembly/{sample}_{unit}/{sample}_{unit}_derep.fasta",
             cent="results/assembly/{sample}_{unit}/{sample}_{unit}_cluster.fasta"
         output:
-            expand("results/assembly/{{sample}}_{{unit}}/{{sample}}_{{unit}}{repaired}.fasta",repaired=CONSTRAINT_REPAIRED_3),
-            expand("results/assembly/{{sample}}_{{unit}}/{{sample}}_{{unit}}{repaired}_clusters.json", repaired=CONSTRAINT_REPAIRED_3),
+            expand("results/assembly/{{sample}}_{{unit}}/{{sample}}_{{unit}}{repaired}.fasta",repaired=CONSTRAINT_REPAIRED),
+            expand("results/assembly/{{sample}}_{{unit}}/{{sample}}_{{unit}}{repaired}_clusters.json", repaired=CONSTRAINT_REPAIRED),
             #"results/assembly/{sample}_{unit}/{sample}_{unit}_derep_repaired.fastq",# "repaired" bases will have a lower quality score (and will be APPENDED - or replace the original ones?)
             #"results/assembly/{sample}_{unit}/{sample}_{unit}_derep_repair_mapping.json"  # mapping repaired reads to original reads
 

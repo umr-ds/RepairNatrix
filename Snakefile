@@ -17,20 +17,15 @@ if config["general"]["paired_End"]:
 else:
     reads = 1
 
-CONSTRAINT_FILTER_1 = '_constraint_filtered' if config['constraint_filtering']['after_demultiplexing'] else ''
-CONSTRAINT_FILTER_2 = '_constraint_filtered' if config['constraint_filtering']['after_quality_control'] else ''
-CONSTRAINT_FILTER_3 = '_constraint_filtered' if config['constraint_filtering']['after_assembly'] else ''
-CONSTRAINT_REPAIRED_1 = '_constraint_repaired' if config['constraint_filtering']['repair_after_demultiplexing'] else ''
-CONSTRAINT_REPAIRED_2 = '_constraint_repaired' if config['constraint_filtering']['repair_after_quality_control'] else ''
-CONSTRAINT_REPAIRED_3 = '_assembled_constraint_repaired' if config['constraint_filtering']['repair_after_assembly'] else ''
-RES_STR = f"{CONSTRAINT_FILTER_1}{CONSTRAINT_FILTER_2}{CONSTRAINT_FILTER_3}{CONSTRAINT_REPAIRED_1}{CONSTRAINT_REPAIRED_2}{CONSTRAINT_REPAIRED_3}"
+CONSTRAINT_FILTER = '_constraint_filtered' if config['constraint_filtering']['after_assembly'] else ''
+CONSTRAINT_REPAIRED = '_assembled_constraint_repaired' if config['constraint_filtering']['repair_after_assembly'] else ''
+RES_STR = f"{CONSTRAINT_FILTER}{CONSTRAINT_REPAIRED}"
 rule all:
     input:
         expand("results/assembly/{unit.sample}_{unit.unit}/{unit.sample}_{unit.unit}{res_str}.fasta",
             unit=units.reset_index().itertuples(), res_str=RES_STR)
 
 ruleorder: assembly > prinseq
-ruleorder:
 
 include: "rules/demultiplexing.smk"
 include: "rules/read_assembly.smk"

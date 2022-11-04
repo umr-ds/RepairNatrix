@@ -30,7 +30,7 @@ if config["derep"]["centroid_selection"] == "frequency":
 elif config["derep"]["centroid_selection"] == "quality":
     rule derep:
         input:
-            expand("results/assembly/{{sample}}_{{unit}}/{{sample}}_{{unit}}_assembled{filtered}.fastq",filtered=CONSTRAINT_FILTER_3)
+            expand("results/assembly/{{sample}}_{{unit}}/{{sample}}_{{unit}}_assembled{filtered}.fastq",filtered=CONSTRAINT_FILTER)
         output:
             "results/assembly/{sample}_{unit}/{sample}_{unit}_derep.fastq"
         conda:
@@ -52,7 +52,7 @@ elif config["derep"]["centroid_selection"] == "quality":
         input:
             "results/assembly/{sample}_{unit}/{sample}_{unit}_sorted.fastq"
         output:
-            "results/assembly/{sample}_{unit}/{sample}_{unit}_sorted.fasta"
+            "results/assembly/{sample}_{unit}/{sample}_{unit}_sortedf.fasta"
         conda:
             "../envs/seqtk.yaml"
         shell:
@@ -60,7 +60,7 @@ elif config["derep"]["centroid_selection"] == "quality":
 
     rule vsearch_cluster:
         input:
-            "results/assembly/{sample}_{unit}/{sample}_{unit}_sorted.fasta"
+            "results/assembly/{sample}_{unit}/{sample}_{unit}_sortedf.fasta"
         output:
             cent = "results/assembly/{sample}_{unit}/{sample}_{unit}_cluster.fasta"
         conda:
