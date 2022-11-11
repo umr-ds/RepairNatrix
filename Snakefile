@@ -20,10 +20,15 @@ else:
 CONSTRAINT_FILTER = '_constraint_filtered' if config['constraint_filtering']['after_assembly'] else ''
 CONSTRAINT_REPAIRED = '_assembled_constraint_repaired' if config['constraint_filtering']['repair_after_assembly'] else ''
 RES_STR = f"{CONSTRAINT_FILTER}{CONSTRAINT_REPAIRED}"
-rule all:
-    input:
-        expand("results/assembly/{unit.sample}_{unit.unit}/{unit.sample}_{unit.unit}{res_str}.fasta",
-            unit=units.reset_index().itertuples(), res_str=RES_STR)
+
+if config["general"]["in_vivo"]:
+    rule all:
+        input:
+            expand("results/contig_assembly/assemblies/{unit.sample}_{unit.unit}.fasta", unit=units.reset_index().itertuples())     
+else:
+    rule all:
+        input:
+            expand("results/assembly/{unit.sample}_{unit.unit}/{unit.sample}_{unit.unit}{res_str}.fasta", unit=units.reset_index().itertuples(), res_str=RES_STR)
 
 ruleorder: assembly > prinseq
 
