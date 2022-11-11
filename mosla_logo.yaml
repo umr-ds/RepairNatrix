@@ -8,6 +8,7 @@ general:
   already_assembled: false
   paired_End: true
   name_ext: R1
+  in_vivo: true # Using in-vivo data, the data will be blasted against the carrier organism and hits will be discarded, followed by contig assembly using SPAdes
 
 constraint_filtering:
   constraints:
@@ -40,6 +41,11 @@ constraint_filtering:
   kmer_counting:
     k: 20
     upper_bound: 2
+
+contig_assembly:
+        blast_db:
+                sinorhizobium: blast_db/mosla_db
+                bacillus: blast_db/mosla_db_bacillus
 
 qc:
   threshold: 0.9
