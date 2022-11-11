@@ -1,6 +1,8 @@
+
 rule wrap_fasta:
     input:
-        "results/assembly/{sample}_{unit}/{sample}_{unit}_derep.fasta" if config["derep"]["centroid_selection"] == "frequency" else "results/assembly/{sample}_{unit}/{sample}_{unit}_sorted.fasta"  #"results/assembly/{sample}_{unit}/{sample}_{unit}.dereplicated.fasta"
+        #"results/assembly/{sample}_{unit}/{sample}_{unit}.fastq"#, repaired = CONSTRAINT_REPAIRED, filtered = CONSTRAINT_FILTER)
+        "results/assembly/{sample}_{unit}/{sample}_{unit}_derep.fasta" #if config["derep"]["centroid_selection"] == "frequency" else "results/assembly/{sample}_{unit}/{sample}_{unit}_sortedf.fasta"  #"results/assembly/{sample}_{unit}/{sample}_{unit}.dereplicated.fasta"
     output:
         "results/assembly/{sample}_{unit}/{sample}_{unit}.dereplicated.fasta"
     conda:
@@ -8,9 +10,10 @@ rule wrap_fasta:
     shell:
         "seqtk seq {input} > {output}"
 
+
 rule data_assembly:
     input:
-        derep = "results/assembly/{sample}_{unit}/{sample}_{unit}.dereplicated.fasta"
+        derep = "results/assembly/{sample}_{unit}/{sample}_{unit}_repaired.fasta" if config['constraint_filtering']['repair_after_assembly'] else "results/assembly/{sample}_{unit}/{sample}_{unit}.dereplicated.fasta"
     output:
         blast_hits = "results/contig_assembly/{sample}_{unit}/blast_hits",
         data_hits = "results/contig_assembly/{sample}_{unit}/data_reads.fasta",

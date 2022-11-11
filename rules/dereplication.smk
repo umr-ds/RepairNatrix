@@ -52,7 +52,7 @@ elif config["derep"]["centroid_selection"] == "quality":
         input:
             "results/assembly/{sample}_{unit}/{sample}_{unit}_sorted.fastq"
         output:
-            "results/assembly/{sample}_{unit}/{sample}_{unit}_sortedf.fasta"
+            "results/assembly/{sample}_{unit}/{sample}_{unit}_derep.fasta"
         conda:
             "../envs/seqtk.yaml"
         shell:
@@ -60,7 +60,7 @@ elif config["derep"]["centroid_selection"] == "quality":
 
     rule vsearch_cluster:
         input:
-            "results/assembly/{sample}_{unit}/{sample}_{unit}_sortedf.fasta"
+            "results/assembly/{sample}_{unit}/{sample}_{unit}_derep.fasta"
         output:
             cent = "results/assembly/{sample}_{unit}/{sample}_{unit}_cluster.fasta"
         conda:

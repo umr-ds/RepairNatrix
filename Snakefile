@@ -18,17 +18,19 @@ else:
     reads = 1
 
 CONSTRAINT_FILTER = '_constraint_filtered' if config['constraint_filtering']['after_assembly'] else ''
-CONSTRAINT_REPAIRED = '_assembled_constraint_repaired' if config['constraint_filtering']['repair_after_assembly'] else ''
+CONSTRAINT_REPAIRED = '_constraint_repaired' if config['constraint_filtering']['repair_after_assembly'] else ''
 RES_STR = f"{CONSTRAINT_FILTER}{CONSTRAINT_REPAIRED}"
+#print(RES_STR)
 
-if config["general"]["in_vivo"]:
+if config["general"]["in_vivo"]: #and RES_STR == '':
     rule all:
         input:
-            expand("results/contig_assembly/assemblies/{unit.sample}_{unit.unit}.fasta", unit=units.reset_index().itertuples())     
-else:
+            expand("results/contig_assembly/assemblies/{unit.sample}_{unit.unit}.fasta", unit=units.reset_index().itertuples())
+elif config['constraint_filtering']['repair_after_assembly']:
     rule all:
         input:
-            expand("results/assembly/{unit.sample}_{unit.unit}/{unit.sample}_{unit.unit}{res_str}.fasta", unit=units.reset_index().itertuples(), res_str=RES_STR)
+            expand("results/assembly/{unit.sample}_{unit.unit}/{unit.sample}_{unit.unit}_repaired.fasta", unit=units.reset_index().itertuples())
+
 
 ruleorder: assembly > prinseq
 
