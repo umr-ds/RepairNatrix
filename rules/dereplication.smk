@@ -1,7 +1,7 @@
-if config["derep"]["centroid_selection"] == "frequency":
+if config["derep"]["centroid_selection"] == "frequency" or not config["general"]["clustering"]:
     rule vsearch_derep:
         input:
-            "results/assembly/{sample}_{unit}/{sample}_{unit}.fasta"
+            "results/assembly/{sample}_{unit}/{sample}_{unit}_freq.fasta"
         output:
             "results/assembly/{sample}_{unit}/{sample}_{unit}_derep.fasta"
         conda:
@@ -30,7 +30,7 @@ if config["derep"]["centroid_selection"] == "frequency":
 elif config["derep"]["centroid_selection"] == "quality":
     rule derep:
         input:
-            expand("results/assembly/{{sample}}_{{unit}}/{{sample}}_{{unit}}_assembled{filtered}.fastq",filtered=CONSTRAINT_FILTER)
+            expand("results/assembly/{{sample}}_{{unit}}/{{sample}}_{{unit}}_assembled.fastq") if not config['constraint_filtering']['after_assembly']  else expand("results/assembly/{{sample}}_{{unit}}/{{sample}}_{{unit}}_filtered.fastq")
         output:
             "results/assembly/{sample}_{unit}/{sample}_{unit}_derep.fastq"
         conda:

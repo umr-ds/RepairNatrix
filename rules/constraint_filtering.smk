@@ -40,20 +40,19 @@ rule constraint_repair_base:
 if config['constraint_filtering']['after_assembly']:
     use rule constraint_filtering_base as constraint_filtering_3 with:
         input:
-            expand("results/assembly/{{sample}}_{{unit}}/{{sample}}_{{unit}}_assembled{repaired}.fastq",repaired=CONSTRAINT_REPAIRED),
+            expand("results/assembly/{{sample}}_{{unit}}/{{sample}}_{{unit}}_assembled.fastq"),
             subsequences_file=config['constraint_filtering']['undesired_subsequences'][
                 'file'] if 'undesired_subsequences' in config['constraint_filtering']['constraints'] else []
         log:
             "results/logs/{sample}_{unit}/constraint_filtering_after_assembly.txt"
         output:
-            expand("results/assembly/{{sample}}_{{unit}}/{{sample}}_{{unit}}{repaired}{filtered}.fastq",repaired=CONSTRAINT_REPAIRED, filtered=CONSTRAINT_FILTER),
-            expand("results/assembly/{{sample}}_{{unit}}/{{sample}}_{{unit}}{repaired}{filtered}_out.fastq",repaired=CONSTRAINT_REPAIRED, filtered=CONSTRAINT_FILTER)
+            expand("results/assembly/{{sample}}_{{unit}}/{{sample}}_{{unit}}_filtered.fastq"),
+            expand("results/assembly/{{sample}}_{{unit}}/{{sample}}_{{unit}}_filtered_out.fastq")
         params:
             constraints=config["constraint_filtering"],
             primer_length=0,
             sequence_length=0,
             paired=False
-
 
 if config['constraint_filtering']['repair_after_assembly']:
     #TODO: in this case we want to no only repair invalid centroids but ideally we would want to select:
@@ -61,7 +60,7 @@ if config['constraint_filtering']['repair_after_assembly']:
     # with "best" being: 1) the smallest distance to the current centroid and 2) fulfilling all constraints
     use rule constraint_repair_base as constraint_repair_3 with:
         input:
-            "results/assembly/{sample}_{unit}/{sample}_{unit}_assembled.fastq",
+            "results/assembly/{sample}_{unit}/{sample}_{unit}_assembled.fastq" if not config['constraint_filtering']['after_assembly'] else "results/assembly/{sample}_{unit}/{sample}_{unit}_filtered.fastq",
             #derep="results/assembly/{sample}_{unit}/{sample}_{unit}_derep.fasta",
             cent="results/assembly/{sample}_{unit}/{sample}_{unit}_cluster.fasta"
         output:
