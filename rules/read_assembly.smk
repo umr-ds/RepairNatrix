@@ -59,7 +59,7 @@ rule assembly:
     script:
         "../scripts/assembly.py"
 
-if config["derep"]["centroid_selection"] == "frequency":
+if config["derep"]["centroid_selection"] == "frequency" or not config["general"]["clustering"]:
     rule copy_to_fasta:
         input:
             "results/assembly/{sample}_{unit}/{sample}_{unit}_assembled.fastq" if not config['constraint_filtering']['after_assembly'] else "results/assembly/{sample}_{unit}/{sample}_{unit}_filtered.fastq"
