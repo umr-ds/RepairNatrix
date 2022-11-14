@@ -6,10 +6,12 @@ if config["derep"]["centroid_selection"] == "frequency" or not config["general"]
             "results/assembly/{sample}_{unit}/{sample}_{unit}_derep.fasta"
         conda:
             "../envs/vsearch.yaml"
+        params:
+            minsize=config["derep"]["minsize"]
         log:
             "results/logs/{sample}_{unit}/vsearch_derep.log"
         shell:
-            "vsearch --derep_fulllength {input} --output {output} --log {log}"
+            "vsearch --derep_fulllength {input} --output {output} --log {log} --minuniquesize {params.minsize}"
 
     rule vsearch_cluster:
         input:
@@ -35,6 +37,8 @@ elif config["derep"]["centroid_selection"] == "quality":
             "results/assembly/{sample}_{unit}/{sample}_{unit}_derep.fastq"
         conda:
             "../envs/derep_cluster_qual.yaml"
+        params:
+            minsize=config["derep"]["minsize"]
         script:
             "../scripts/derep_quality.py"
 

@@ -40,7 +40,7 @@ def filter(reads):
         for constraint in constraints.constraints:
             if (constraint.__name__ in snakemake.params.constraints['constraints']):
                 if (constraint.__name__ == 'undesired_subsequences'):
-                    failed = constraint(sequence, snakemake.input.subsequences_file)
+                    failed = constraint(sequence)
                 else:
                     failed = constraint(sequence, **snakemake.params.constraints[constraint.__name__])
                 if failed:

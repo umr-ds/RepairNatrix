@@ -20,8 +20,9 @@ def derep(inp):
 
 def get_records(seq_entries):
     for seq, vals in seq_entries.items():
-        yield SeqRecord(seq, id='0', description=';size={};'.format(vals["size"]),
-                        letter_annotations={"phred_quality": vals["quality"]})
+        if vals["size"] >= snakemake.params.minsize:
+            yield SeqRecord(seq, id='0', description=';size={};'.format(vals["size"]),
+                            letter_annotations={"phred_quality": vals["quality"]})
 
 
 derep_seqs = derep(str(snakemake.input))
