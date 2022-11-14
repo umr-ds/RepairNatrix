@@ -31,10 +31,16 @@ elif config['constraint_filtering']['repair_after_assembly']:
         input:
             expand("results/assembly/{unit.sample}_{unit.unit}/{unit.sample}_{unit.unit}_repaired.fasta", unit=units.reset_index().itertuples())
 elif config['constraint_filtering']['after_assembly']:
-    rule all:
-        input:
-            expand("results/assembly/{unit.sample}_{unit.unit}/{unit.sample}_{unit.unit}_filtered.fastq", unit=units.reset_index().itertuples()),
-            expand("results/assembly/{unit.sample}_{unit.unit}/{unit.sample}_{unit.unit}_derep.fasta", unit=units.reset_index().itertuples())
+    if config['general']['clustering']:
+        rule all:
+            input:
+                expand("results/assembly/{unit.sample}_{unit.unit}/{unit.sample}_{unit.unit}_filtered.fastq", unit=units.reset_index().itertuples()),
+                expand("results/assembly/{unit.sample}_{unit.unit}/{unit.sample}_{unit.unit}_cluster.fasta",unit=units.reset_index().itertuples())
+    else:
+        rule all:
+            input:
+                expand("results/assembly/{unit.sample}_{unit.unit}/{unit.sample}_{unit.unit}_filtered.fastq",unit=units.reset_index().itertuples()),
+                expand("results/assembly/{unit.sample}_{unit.unit}/{unit.sample}_{unit.unit}_derep.fasta",unit=units.reset_index().itertuples())
 elif config["general"]["clustering"]:
     rule all:
         input:
