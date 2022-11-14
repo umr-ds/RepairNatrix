@@ -287,8 +287,8 @@ def repair_clusters(desired_length):
         cluster = [seq for name, seq in read_fasta(cluster_file).items()]
         clusters.append((cluster[0], cluster[1:]))
     clusters = sorted(clusters, key=lambda x: len(x[1]), reverse=True)
-    output_file = input_file.replace("cluster.fasta", "assembled_constraint_repaired.fasta")
-    output_cluster_mapping_file = input_file.replace("cluster.fasta", "assembled_constraint_repaired_clusters.json")
+    output_file = input_file.replace("cluster.fasta", "repaired.fasta")
+    output_cluster_mapping_file = input_file.replace("cluster.fasta", "repaired_clusters.json")
     # run different repairs based on the input-file:
     # if we have a list of clusters(+centroids) we want to run a special repair for each cluster:
     # - if the centroid does fulfill all constraints: return centroid as correct
