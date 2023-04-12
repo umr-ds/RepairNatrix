@@ -1,19 +1,18 @@
 # RepairNatrix
 
-Documentation see [@Natrix](https://github.com/MW55/Natrix)
-
-![DAG of an example workflow](documentation/images/dag_0.0.3.svg)
-*DAG of an example workflow for RapairNatrix
+![DAG of an example workflow](documentation/images/dag.svg)
+*DAG of an example workflow for RepairNatrix
 
 ---
-constraint_filtering 1-3 can be turned on optionally  
+constraint_filtering can be turned on optionally  
 available constraints:  
 * homopolymers
 * overall_gc_content
 * windowed_gc_content
 * undesired_subsequences
 * kmer_counting
-too harsh filtering may result in execution errors of other rules (empty files)
+##### too harsh filtering may result in execution errors of other rules (empty files) !
+
 ---
 other changes:
 * added rules for vsearch derep & clustering with clustering_id option
@@ -21,3 +20,12 @@ other changes:
 * constraint_filtering: options for primer & sequence length, which are used in the filtering rules until assembly
 * prinseq: option to trim to length (cut right side of trim)
 
+---
+
+#### Usage
+
+RepairNatrix uses a yaml file to specify the input files and parameters. 
+A schema to validate yaml files including a description for all field can be found [here](https://github.com/umr-ds/RepairNatrix/example_data.yaml).
+An example config can be found [here](https://github.com/umr-ds/RepairNatrix/example_data.yaml).
+
+For the full documentation see [@Natrix](https://github.com/MW55/Natrix)
