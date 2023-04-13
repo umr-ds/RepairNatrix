@@ -1,7 +1,8 @@
 rule constraint_repair:
     input:
         # "results/assembly/{sample}_{unit}/{sample}_{unit}_assembled.fastq"
-        derep="results/assembly/{sample}_{unit}/{sample}_{unit}_derep.fasta",
+        #derep="results/assembly/{sample}_{unit}/{sample}_{unit}_derep.fasta",
+        derep="results/assembly/{sample}_{unit}/{sample}_{unit}.dereplicated.fasta",
         cluster="results/assembly/{sample}_{unit}/{sample}_{unit}_cluster.fasta"
     output:
         "results/assembly/{sample}_{unit}/{sample}_{unit}_repaired_cluster.fasta" # "repaired" bases will have a lower quality score (and will be APPENDED - or replace the original ones?)

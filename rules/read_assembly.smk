@@ -1,8 +1,8 @@
 def get_fastq(wildcards):
     if not is_single_end(wildcards.sample, wildcards.unit):
-        return expand("demultiplexed/{sample}_{unit}_{group}{repaired}{filtered}.fastq", repaired=CONSTRAINT_REPAIRED_1, filtered=CONSTRAINT_FILTER_1,
+        return expand("demultiplexed/{sample}_{unit}_{group}.fastq",
                         group=[1,2], **wildcards)
-    return "demultiplexed/{sample}_{unit}_1{repaired}{filtered}.fastq".format(repaired=CONSTRAINT_REPAIRED_1, filtered=CONSTRAINT_FILTER_1, **wildcards)
+    return "demultiplexed/{sample}_{unit}_1.fastq".format(**wildcards)
 
 
 #def get_fastq(wildcards):
@@ -47,8 +47,7 @@ rule prinseq:
 rule assembly:
     input:
         expand(
-        "results/assembly/{{sample}}_{{unit}}/{{sample}}_{{unit}}_{read}{repaired}{filtered}.fastq",
-        repaired=CONSTRAINT_REPAIRED_2, filtered=CONSTRAINT_FILTER_2, read=reads),
+        "results/assembly/{{sample}}_{{unit}}/{{sample}}_{{unit}}_{read}.fastq",read=reads),
         primer_t="primer_table.csv"
     output:
         "results/assembly/{sample}_{unit}/{sample}_{unit}_assembled.fastq"
@@ -68,14 +67,14 @@ rule assembly:
     script:
         "../scripts/assembly.py"
 
-#if config["derep"]["centroid_selection"] == "frequency":
-#    rule copy_to_fasta:
-#        input:
-#            "results/assembly/{sample}_{unit}/{sample}_{unit}_assembled.fastq"
-#            #expand("results/assembly/{{sample}}_{{unit}}/{{sample}}_{{unit}}_{read}{repaired}{filtered}.fastq",read=reads ,repaired=CONSTRAINT_REPAIRED_2,filtered=CONSTRAINT_FILTER_2)
-#        output:
-#            "results/assembly/{sample}_{unit}/{sample}_{unit}.fasta"
-#        conda:
-#            "../envs/seqtk.yaml"
-#        shell:
-#            "seqtk seq -a {input} > {output}"
+if config["derep"]["centroid_selection"] == "frequency" or not config["general"]["clustering"]:
+    rule copy_to_fasta:
+        input:
+            "results/assembly/{sample}_{unit}/{sample}_{unit}_assembled.fastq" if not config['constraint_filtering']['after_assembly'] else "results/assembly/{sample}_{unit}/{sample}_{unit}_filtered.fastq"
+            #expand("results/assembly/{{sample}}_{{unit}}/{{sample}}_{{unit}}_{read}{repaired}{filtered}.fastq",read=reads ,repaired=CONSTRAINT_REPAIRED_2,filtered=CONSTRAINT_FILTER_2)
+        output:
+            "results/assembly/{sample}_{unit}/{sample}_{unit}_freq.fasta"
+        conda:
+            "../envs/seqtk.yaml"
+        shell:
+            "seqtk seq -a {input} > {output}"

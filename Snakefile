@@ -21,7 +21,7 @@ CONSTRAINT_FILTER = '_constraint_filtered' if config['constraint_filtering']['af
 CONSTRAINT_REPAIRED = '_constraint_repaired' if config['constraint_filtering']['repair_after_assembly'] else ''
 RES_STR = f"{CONSTRAINT_FILTER}{CONSTRAINT_REPAIRED}"
 
-if config["general"]["in_vivo"]: #and RES_STR == '':
+if config["general"]["in_vivo"]:
     rule all:
         input:
             expand("results/contig_assembly/assemblies/{unit.sample}_{unit.unit}.fasta", unit=units.reset_index().itertuples())

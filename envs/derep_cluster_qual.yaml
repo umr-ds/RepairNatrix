@@ -5,10 +5,29 @@ channels:
   - defaults
 dependencies:
   - biopython=1.78
+  - blas=1.0
+  - bzip2=1.0.8
+  - ca-certificates=2022.2.1
+  - certifi=2020.6.20
+  - intel-openmp=2021.4.0
+  - ld_impl_linux-64=2.35.1
+  - mkl=2021.4.0
+  - mkl-service=2.4.0
+  - mkl_fft=1.3.1
+  - mkl_random=1.2.2
+  - ncurses=6.3
   - numpy=1.21.2
   - numpy-base=1.21.2
+  - openssl=1.1.1m
   - pip=21.2.4
   - python=3.10.0
   - readline=8.1.2
+  - setuptools=58.0.4
+  - six=1.16.0
   - sqlite=3.37.2
+  - tk=8.6.11
+  - tzdata=2021e
   - vsearch=2.15.2
+  - wheel=0.37.1
+  - xz=5.2.5
+  - zlib=1.2.11

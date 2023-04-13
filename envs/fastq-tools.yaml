@@ -5,4 +5,5 @@ channels:
   - defaults
 dependencies:
   - fastq-tools=0.8.3
-
+  - pcre=8.45
+  - zlib=1.2.11
