@@ -124,16 +124,19 @@ With a profile RepairNatrix can simply be run with
 ```shell
 $ snakemake -s <path/to/Snakefile> --profile myprofile 
 ```
-
 The Snakemake documentation contains a tutorial for [profile creation](https://snakemake.readthedocs.io/en/stable/executing/cli.html#profiles) 
 and the [Snakemake profiles GitHub page](https://github.com/snakemake-profiles/doc) contains example profiles for different
 cluster systems.
+
 ---
+
 ### Example workflow configurations
 ![Simple workflow](documentation/images/dag_nothing.png "Only read assembly")
 ![Filtering](documentation/images/dag_remove.png "Read assembly with filtering")
 ![Filtering](documentation/images/dag_repair.png "Read assembly, clustering, and repair")
+
 ---
+
 ### Further information
 
 constraint_filtering can be turned on optionally  
@@ -149,4 +152,4 @@ RepairNatrix uses a yaml file to specify the input files and parameters.
 A schema to validate yaml files including a description for all field can be found [here](https://github.com/umr-ds/RepairNatrix/example_data.yaml).
 An example config can be found [here](https://github.com/umr-ds/RepairNatrix/example_data.yaml).
 
-RepairNatrix is based on the Natrix amplicon processing pipeline, which can be found at [@Natrix](https://github.com/MW55/Natrix)
+RepairNatrix is based on the Natrix amplicon processing pipeline, which can be found at [@Natrix](https://github.com/MW55/Natrix).
