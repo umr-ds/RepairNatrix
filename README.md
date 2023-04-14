@@ -27,6 +27,7 @@ All other dependencies will be automatically installed using conda environments 
 
 ## Getting Started
 
+*Note: this tutorial is largely inherited from the base Natrix repository. For more information, visit [@Natrix](https://github.com/MW55/Natrix)*
 To install RepairNatrix, you'll need the open-source package management system [conda](https://conda.io/en/latest/index.html).
 After cloning this repository to a folder of your choice, it is recommended to create a general RepairNatrix conda environment with the accompanying `natrix_repair.yaml`. In the main folder of the cloned repository, execute the following command:
 
