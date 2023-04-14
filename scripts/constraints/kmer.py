@@ -12,29 +12,29 @@ def old_kmer_counting_error_val(seq, k, upper_bound):
                 res[start:start + len(kmer)] = [1.0 * len(kmer_pos[kmer]) - upper_bound] * len(kmer)
     return res
 
-
+'''
 try:
     from cdnarules import kmer_counting_error_val
 except ImportError:
     print("C Module failed to load, falling back to slow mode")
+'''
 
-
-    def kmer_counting_error_val(seq, k, upper_bound, active=True):
-        res = [0.0] * len(seq)
-        if not active:
-            return res
-        kmer_pos = {}
-        for i in range(len(seq) - k + 1):
-            kmer = seq[i:i + k]
-            if kmer not in kmer_pos:
-                kmer_pos[kmer] = list()
-            kmer_pos[kmer].append(i)
-        for kmer in kmer_pos.keys():
-            if len(kmer_pos[kmer]) > upper_bound:
-                for start in kmer_pos[kmer]:
-                    for i in range(len(kmer)):
-                        res[start + i] += 1.0 * len(kmer_pos[kmer]) - upper_bound
+def kmer_counting_error_val(seq, k, upper_bound, active=True):
+    res = [0.0] * len(seq)
+    if not active:
         return res
+    kmer_pos = {}
+    for i in range(len(seq) - k + 1):
+        kmer = seq[i:i + k]
+        if kmer not in kmer_pos:
+            kmer_pos[kmer] = list()
+        kmer_pos[kmer].append(i)
+    for kmer in kmer_pos.keys():
+        if len(kmer_pos[kmer]) > upper_bound:
+            for start in kmer_pos[kmer]:
+                for i in range(len(kmer)):
+                    res[start + i] += 1.0 * len(kmer_pos[kmer]) - upper_bound
+    return res
 
 
 def kmer_counting(seq, k, upper_bound):
