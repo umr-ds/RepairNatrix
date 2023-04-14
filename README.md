@@ -53,7 +53,7 @@ samplename_unit_direction.fastq.gz
 ```
 with:
 * *samplename* as the name of the sample, without special characters.
-* *unit*, identifier for split-samples (*A*, *B*). If the split-sample approach is not used, the unit identifier is simply *A*.
+* *unit*, unit identifier, which is simply *A*.
 * *direction*, identifier for forward (*R1*) and reverse (*R2*) reads of the same sample. If the reads are single-end, the direction identifier is *R1*.
 
 A dataset should look like this (two samples, paired-end, no split-sample approach):
