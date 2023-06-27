@@ -211,6 +211,8 @@ def repair_single_cluster(single_cluster_data, desired_length=160):
     res = [sum(x) for x in zip(*all_violations)]
     if sum(res) == 0 and len(res) == desired_length:
         # there was no error in the centroid. OPTIONAL: mark as correct
+        with open("org_vs_repair.csv", "a") as fp:
+            fp.write(f"{centroid}, {centroid}\n")
         return "C", centroid  # Centroid was Correct
         # continue
     else:
@@ -221,6 +223,8 @@ def repair_single_cluster(single_cluster_data, desired_length=160):
             seq_violations = calc_errors(seq)
             res = [sum(x) for x in zip(*seq_violations)]
             if sum(res) == 0 and len(res) == desired_length:
+                with open("org_vs_repair.csv", "a") as fp:
+                    fp.write(f"{centroid}, {seq}\n")
                 return "S_C", seq  # Centroid was substituted - new centroid is correct - no repair was needed!
             # else:
             # the sequence does not fulfill all constraints
@@ -243,7 +247,11 @@ def repair_single_cluster(single_cluster_data, desired_length=160):
                 else:
                     continue
             if len(possible_results) > 0:
+                with open("org_vs_repair.csv", "a") as fp:
+                    fp.write(f"{centroid}, {sorted(possible_results, key=lambda x: x[0])[0][1][1]}\n")
                 return sorted(possible_results, key=lambda x: x[0])[0][1]
+        with open("org_vs_repair.csv", "a") as fp:
+            fp.write(f"{centroid}, _\n")
         return "F", centroid
 
 
