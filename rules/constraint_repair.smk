@@ -13,8 +13,8 @@ rule constraint_repair:
         min_gc_content=config["constraint_filtering"]["gc_content"]["gc_min"],
         max_gc_content=config["constraint_filtering"]["gc_content"]["gc_max"],
         windowed_gc_content_max_gc_window_size= config["constraint_filtering"]["windowed_gc_content"]["window_size"],
-        allowed_window_min_gc= config["constraint_filtering"]["windowed_gc_content"]["gc_min"],
-        allowed_window_max_gc= config["constraint_filtering"]["windowed_gc_content"]["gc_max"],
+        windowed_gc_content_min_gc_content=config["constraint_filtering"]["windowed_gc_content"]["gc_min"],
+        windowed_gc_content_max_gc_content=config["constraint_filtering"]["windowed_gc_content"]["gc_max"],
         max_homopolymer_length=config["constraint_filtering"]["homopolymer"]["count"],
         illegal_sequences=config["constraint_filtering"]["undesired_subsequences"]["file"],
         #todo add kmer checks to constraint_filtering code:
