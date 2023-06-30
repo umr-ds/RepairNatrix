@@ -315,10 +315,10 @@ class FastDNARules:
         return max(0.0, min(1.0, calc_func(gc_content(data))))
 
     @staticmethod
-    def windowed_gc_content(data, window_size=50, calc_func=gc_error_calculation):
+    def windowed_gc_content(data, window_size=50, calc_func=gc_error_calculation, ignore_last=False):
         chunks = [FastDNARules.overall_gc_content(data[i:i + window_size], calc_func=calc_func) for i in
                   range(0, len(data), window_size)]
-        return min(1.0, max(chunks))
+        return min(1.0, max(chunks[:-1] if ignore_last else chunks))
 
     @staticmethod
     def motif_search(data):
