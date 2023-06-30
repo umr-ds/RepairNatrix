@@ -225,7 +225,10 @@ if USE_QUALITY_MAPPING:
 
 def repair_single_cluster(single_cluster_data, desired_length=160):
     global pbar
-    pbar.update(1)
+    try:
+        pbar.update(1)
+    except AttributeError:
+        pass
     centroid, cluster = single_cluster_data
     all_violations = calc_errors(centroid)
     res = [sum(x) for x in zip(*all_violations)]
@@ -311,13 +314,11 @@ def repair_clusters(desired_length):
     #         - if this fails after CHANGE_LIMIT changes:
     #           - repair _ALL_ sequences in the cluster and choose the one with the least changes
     #             _AND_ the shortest distance to the centroid
-    # res_centroids = []
     pbar = tqdm(total=len(clusters))
     p = multiprocessing.Pool(cores)
-    # res_centroids = [x for x in
-    #                 p.imap_unordered(partial(repair_single_cluster, desired_length=desired_length), iterable=clusters,
-    #                                  chunksize=max(1,math.ceil(len(clusters) / (cores * 10))))]
-    res_centroids = [partial(repair_single_cluster, desired_length=desired_length)(y) for y in clusters]
+    res_centroids = [x for x in
+                     p.imap_unordered(partial(repair_single_cluster, desired_length=desired_length), iterable=clusters,
+                                      chunksize=max(1, math.ceil(len(clusters) / (cores * 10))))]
     if not inplace_repair:
         # read all entries of input_file (containing all initial centroids)
         # initial_centroids = dinopy.FastqReader(input_file)
