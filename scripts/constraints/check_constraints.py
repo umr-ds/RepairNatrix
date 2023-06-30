@@ -30,6 +30,10 @@ from FastDNARules import FastDNARules
 rules = FastDNARules()
 overall_gc_content_error_val = lambda data, low, high: [rules.overall_gc_content(data, calc_func=lambda x: 1.0 if (
         x < low or x > high) else 0.0)] * len(data)
+windowed_gc_content_error_val = lambda data, window, low, high: [rules.windowed_gc_content(data, window_size=window,
+                                                                                           calc_func=lambda x: 1.0 if (
+                                                                                                   x < low or x > high) else 0.0)] * len(
+    data)
 
 from homopolymers import homopolymer_error_val
 from kmer import kmer_counting_error_val
@@ -148,6 +152,9 @@ try:
     repair_quality_score = snakemake.params.repair_quality_score
     allowed_min_gc = snakemake.params.min_gc_content
     allowed_max_gc = snakemake.params.max_gc_content
+    allowed_max_gc_window_size = snakemake.params.windowed_gc_content_max_gc_window_size
+    allowed_window_min_gc = snakemake.params.windowed_gc_content_min_gc_content
+    allowed_window_max_gc = snakemake.params.windowed_gc_content_max_gc_content
     allowed_max_homopolymer_length = snakemake.params.max_homopolymer_length
     kmer_active = snakemake.params.kmer_active
     kmer_k = snakemake.params.kmer_k
@@ -163,14 +170,17 @@ except NameError as ne:
     logging.warning("No snakemake detected. Using default values for parameters.")
     inplace_repair = False
     repair_quality_score = 33
-    allowed_min_gc = 0.4
+    allowed_min_gc = 0.3
     allowed_max_gc = 0.7
-    allowed_max_homopolymer_length = 3
+    allowed_max_gc_window_size = 50
+    allowed_window_min_gc = 0.4
+    allowed_window_max_gc = 0.6
+    allowed_max_homopolymer_length = 4
     kmer_active = True
     kmer_k = 10
     kmer_max_count = 20
     cores = 8
-    length = 160
+    length = 156
     undesired_subsequences_file = "undesired_subsequences.txt"
     MAX_ITERATIONS = 50
     USE_QUALITY_MAPPING = True
@@ -377,6 +387,8 @@ def calc_errors(seq):
     """
     results = [undesired_subsequences_finder.undesired_subsequences_val(seq),
                overall_gc_content_error_val(seq, float(allowed_min_gc), float(allowed_max_gc)),
+               windowed_gc_content_error_val(seq, int(allowed_max_gc_window_size), float(allowed_window_min_gc),
+                                             float(allowed_window_max_gc)),
                homopolymer_error_val(seq, int(allowed_max_homopolymer_length), True),
                kmer_counting_error_val(seq, int(kmer_k), int(kmer_max_count), kmer_active),
                [0.0] * len(seq)]
