@@ -1,6 +1,7 @@
 import functools
 import glob
 import os.path
+from multiprocessing import freeze_support
 from shutil import move
 import json
 import math
@@ -31,6 +32,7 @@ rules = FastDNARules()
 overall_gc_content_error_val = lambda data, low, high: [rules.overall_gc_content(data, calc_func=lambda x: 1.0 if (
         x < low or x > high) else 0.0)] * len(data)
 windowed_gc_content_error_val = lambda data, window, low, high: [rules.windowed_gc_content(data, window_size=window,
+                                                                                           ignore_last=True,
                                                                                            calc_func=lambda x: 1.0 if (
                                                                                                    x < low or x > high) else 0.0)] * len(
     data)
@@ -184,8 +186,16 @@ except NameError as ne:
     undesired_subsequences_file = "undesired_subsequences.txt"
     MAX_ITERATIONS = 50
     USE_QUALITY_MAPPING = True
-    snakemake_input_file_zero = "../../results/assembly/MOSLA2_A/MOSLA2_A_cluster.fasta"
+    snakemake_input_file_zero = "../../results/assembly/40Dorn429_A/40Dorn429_A_cluster.fasta"
 
+if allowed_min_gc < 1:
+    allowed_min_gc = allowed_min_gc * 100
+if allowed_max_gc < 1:
+    allowed_max_gc = allowed_max_gc * 100
+if allowed_window_min_gc < 1:
+    allowed_window_min_gc = allowed_window_min_gc * 100
+if allowed_window_max_gc < 1:
+    allowed_window_max_gc = allowed_window_max_gc * 100
 logging.info(
     f"Repairing file: {snakemake_input_file_zero} {'using in-place repair' if inplace_repair else 'adding repaired sequences.'}")
 undesired_subsequences_finder = UndesiredSubSequenceFinder(undesired_subsequences_file)
@@ -215,7 +225,10 @@ if USE_QUALITY_MAPPING:
 
 def repair_single_cluster(single_cluster_data, desired_length=160):
     global pbar
-    pbar.update(1)
+    try:
+        pbar.update(1)
+    except AttributeError:
+        pass
     centroid, cluster = single_cluster_data
     all_violations = calc_errors(centroid)
     res = [sum(x) for x in zip(*all_violations)]
@@ -301,12 +314,11 @@ def repair_clusters(desired_length):
     #         - if this fails after CHANGE_LIMIT changes:
     #           - repair _ALL_ sequences in the cluster and choose the one with the least changes
     #             _AND_ the shortest distance to the centroid
-    # res_centroids = []
     pbar = tqdm(total=len(clusters))
     p = multiprocessing.Pool(cores)
     res_centroids = [x for x in
                      p.imap_unordered(partial(repair_single_cluster, desired_length=desired_length), iterable=clusters,
-                                      chunksize=math.ceil(len(clusters) / (cores * 10)))]
+                                      chunksize=max(1, math.ceil(len(clusters) / (cores * 10))))]
     if not inplace_repair:
         # read all entries of input_file (containing all initial centroids)
         # initial_centroids = dinopy.FastqReader(input_file)
@@ -594,4 +606,6 @@ def main(desired_length=160):
     logging.info(f"Saving result-mapping for alternative centroid selection during decoding: {out_path}")
 
 
-repair_clusters(length)
+if __name__ == '__main__':
+    freeze_support()
+    repair_clusters(length)

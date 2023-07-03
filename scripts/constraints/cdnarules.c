@@ -372,6 +372,27 @@ static PyObject* byte2QUATS(PyObject* self,  PyObject *args)
    return return_val;
 }
 
+PyObject* gc_content(PyObject* self, PyObject* args) {
+    const char* text;
+
+    if (!PyArg_ParseTuple(args, "s", &text)) {
+        return NULL;  // Return an error value
+    }
+
+    unsigned long long count_gc = 0;
+    unsigned long long text_length = strlen(text);
+
+    for (unsigned long long i = 0; i < text_length; i++) {
+        if (text[i] == 'G' || text[i] == 'C') {
+            count_gc++;
+        }
+    }
+
+    double percentage = (count_gc * 100.0) / text_length;
+    return Py_BuildValue("f", percentage);
+}
+
+
 static PyObject* strContainsSub(PyObject* self,  PyObject *args)
 {
    char *text;
@@ -407,6 +428,8 @@ static char bitSet_docs[] =
 "bitSet(X,b): returns if bit b is set in X";
 static char kmer_counting_error_value_docs[] =
 "kmer_counting_error_val(seq,k, upper_bound): returns the error value for all kmers of length k in seq with a upper bound of upper_bound";
+static char gc_content_docs[] =
+    "gc_content(text): returns the percentage of GC in the given text";
 static PyMethodDef cdnarules_funcs[] = {
    //{"microsatellite", (PyCFunction)microsatellite, METH_NOARGS, cdnarules_docs},
    {"bitsSet", bitsSet, METH_VARARGS, bitsSet_docs},
@@ -420,6 +443,7 @@ static PyMethodDef cdnarules_funcs[] = {
    {"bitsSet", bitsSet, METH_VARARGS, bitsSet_docs},
    {"bitSet", bitSet, METH_VARARGS, bitSet_docs},
    {"kmer_counting_error_val", kmer_counting_error_val, METH_VARARGS, kmer_counting_error_value_docs},
+   {"gc_content", gc_content, METH_VARARGS, gc_content_docs},
    {NULL, NULL, 0, NULL}
 };
 
