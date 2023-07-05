@@ -2,9 +2,9 @@ import copy
 import math
 from functools import partial
 
-#try:
-#import pybloomfilter
-#except:
+# try:
+# import pybloomfilter
+# except:
 #    import pybloom as pybloomfilter  # code for windows...
 
 from RuleParser import longestSequenceOfChar, microsatellite, length, strContainsIllegalChars, \
@@ -56,7 +56,7 @@ def ts_gc_error_calculation(gc_percentage):
 
 def gc_strict_calculation(gc_percentage):
     return (
-                   100 + 49970.8 * gc_percentage - 2582 * gc_percentage ** 2 + 41.6458 * gc_percentage ** 3 - 0.208229 * gc_percentage ** 4) / 100
+            100 + 49970.8 * gc_percentage - 2582 * gc_percentage ** 2 + 41.6458 * gc_percentage ** 3 - 0.208229 * gc_percentage ** 4) / 100
 
 
 def strict_homopolymers():
@@ -76,8 +76,8 @@ def lax_homopolymers():
 
 class FastDNARules:
     def __init__(self, active_rules=None):
-        #self.nineteen_mers = pybloomfilter.BloomFilter(50000000, 0.0001)
-        #self.tmp_nineteen_mers = pybloomfilter.BloomFilter(50000, 0.0001)
+        # self.nineteen_mers = pybloomfilter.BloomFilter(50000000, 0.0001)
+        # self.tmp_nineteen_mers = pybloomfilter.BloomFilter(50000, 0.0001)
         if active_rules is None:
             self.active_rules = [
                 # FastDNARules.a_permutation,
@@ -318,7 +318,7 @@ class FastDNARules:
     def windowed_gc_content(data, window_size=50, calc_func=gc_error_calculation, ignore_last=False):
         chunks = [FastDNARules.overall_gc_content(data[i:i + window_size], calc_func=calc_func) for i in
                   range(0, len(data), window_size)]
-        return min(1.0, max(chunks[:-1] if ignore_last else chunks))
+        return min(1.0, max(chunks[:-1] if (ignore_last and len(chunks) > 0) else chunks))
 
     @staticmethod
     def motif_search(data):
@@ -494,7 +494,7 @@ if __name__ == "__main__":
     # print(x.check_and_add_mers("AAAAGAGAGAGAGAGAGAGCCCCCCCCCCCCCCCCCCCAACAGAGAGAGAGAGAGAG", 19))
     # print(x.check_and_add_mers("CCCCCCCCCCCCCCCCCCC", 19))
 
-    print(x.repeatRegion("ACGTACGTGACTGACTGATCGATGCATCGATGCTAGCATGCTAGCATCG",4))
+    print(x.repeatRegion("ACGTACGTGACTGACTGATCGATGCATCGATGCTAGCATGCTAGCATCG", 4))
     print(x.homopolymers(
         "GGTCTCGCAAGTTACGTGTCTATTTAGCGCGGCATATCACAGCGGCGGTACGCATAACAGTTTACAGGGAAAGTAGATCATCAGGCGTGGCTAGGGAGCGCGTGTCCTCATTTGTTGAGGAGACGCTAAAGCACCCGGGTAGTAAATATCTGAACATGGGGGGG",
         probs=three_strict_homopolymers()))
